@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
 
     const ghToken = Deno.env.get('GITHUB_TOKEN');
     const owner = Deno.env.get('GITHUB_OWNER') ?? 'Wendell544';
-    const repo = Deno.env.get('GITHUB_REPO') ?? 'Bilinhajoias';
+    const repo = Deno.env.get('GITHUB_REPO') ?? 'Blitzsaobento';
     const branch = Deno.env.get('GITHUB_BRANCH') ?? 'main';
 
     if (!ghToken) {
@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
       Authorization: `Bearer ${ghToken}`,
       Accept: 'application/vnd.github+json',
       'X-GitHub-Api-Version': '2022-11-28',
-      'User-Agent': 'Bilinha-Cleanup-Orphans',
+      'User-Agent': 'Blitz-Cleanup-Orphans',
     };
 
     const listRes = await fetch(
