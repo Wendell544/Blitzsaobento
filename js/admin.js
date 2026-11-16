@@ -52,8 +52,8 @@ const SF = [
 ];
 
 const SH = [
-  ['feat', 'Produtos em destaque'],
-  ['best', 'Mais populares'],
+  ['feat', 'Looks em destaque'],
+  ['best', 'Mais vendidos'],
   ['news', 'Lançamentos'],
   ['cats', 'Categorias'],
   ['ads', 'Anúncios']
@@ -79,7 +79,7 @@ const UP =
 const shell = () => {
   $('adm').innerHTML = `<div class="w adin">
     <div class="row sp wrap">
-      <h2 class="serif h2">Painel</h2>
+      <h2 class="serif h2">Painel BLITZ</h2>
       <div class="row wrap">
         <button class="b ghost" data-a="bk" aria-label="Backup">Backup</button>
         <button class="b ghost" data-a="exit">Sair</button>
@@ -193,9 +193,9 @@ function tProd() {
       : ''
   }
   <section class="sf br box">
-    <h3 class="serif h3" id="pft">${A.edit ? 'Editar produto' : 'Cadastrar produto'}</h3>
+    <h3 class="serif h3" id="pft">${A.edit ? 'Editar peça' : 'Cadastrar peça'}</h3>
     <div class="fm">
-      ${F('pf-title', 'Nome do produto', 'maxlength=120', 'full')}
+      ${F('pf-title', 'Nome da peça', 'maxlength=120', 'full')}
       <label class="lb">Categoria
         <select class="in" id="pf-cat">
           ${DB.categories.map((c) => `<option>${esc(c.name)}</option>`).join('')}
@@ -224,14 +224,14 @@ function tProd() {
     </div>
     <p id="perr" class="err hid"></p>
     <div class="row wrap">
-      <button class="b gold" data-a="psave">Salvar produto</button>
+      <button class="b gold" data-a="psave">Salvar peça</button>
       <button class="b ghost" data-a="pc">Cancelar</button>
     </div>
   </section>
   <section class="sf br box">
     <div class="row sp wrap">
-      <h3 class="serif h3">Produtos cadastrados</h3>
-      <input class="in" id="fq" placeholder="Buscar produto" style="max-width:240px" value="${esc(A.fq)}">
+      <h3 class="serif h3">Peças cadastradas</h3>
+      <input class="in" id="fq" placeholder="Buscar peça" style="max-width:240px" value="${esc(A.fq)}">
     </div>
     <div id="pl"></div>
   </section>`;
@@ -288,7 +288,7 @@ function plist() {
           </div>
         </div>`
       )
-      .join('') || '<p class="tm">Nenhum produto encontrado.</p>';
+      .join('') || '<p class="tm">Nenhuma peça encontrada.</p>';
   if (l.length > m.length)
     $('pl').insertAdjacentHTML(
       'beforeend',
@@ -368,7 +368,7 @@ async function upP(files) {
     toast('Limite de 12 fotos por produto.');
     return;
   }
-  const r = await upRun(files.slice(0, room), false); // PRODUTO: false
+  const r = await upRun(files.slice(0, room), false);
   r.refs.forEach((x) => {
     if (!A.imgs.some((y) => (R(y)?.u || '') === x.u)) A.imgs.push(x);
   });
@@ -379,7 +379,7 @@ async function upP(files) {
 
 async function upM(files) {
   if (!files.length) return;
-  const r = await upRun([files[0]], true); // BANNER/ANÚNCIO: true
+  const r = await upRun([files[0]], true);
   if (r.refs[0]) {
     A.m.img = r.refs[0].u;
     mpv();
@@ -388,7 +388,7 @@ async function upM(files) {
 
 async function upSet(files) {
   if (!files.length) return;
-  const r = await upRun([files[0]], true); // FUNDO HERO: true
+  const r = await upRun([files[0]], true);
   if (r.refs[0]) {
     A.setBg = r.refs[0].u;
     setpv();
@@ -401,7 +401,7 @@ async function saveP() {
     p = parseFloat(g('price')),
     o = parseFloat(g('promo')),
     er = $('perr');
-  const m = t.length < 2 ? 'Informe o nome do produto.'
+  const m = t.length < 2 ? 'Informe o nome da peça.'
     : !(p > 0 && p < 1e7) ? 'Informe um preço original válido.'
     : o >= p ? 'O preço promocional deve ser menor que o original.'
     : '';
@@ -437,7 +437,7 @@ async function saveP() {
   Draft.clear();
   render();
   show(0);
-  toast('Produto salvo.');
+  toast('Peça salva.');
 }
 
 const mpv = () => {
@@ -712,7 +712,7 @@ ACT.pdup = async (id) => {
   DB.prod.splice(DB.prod.findIndex(x => x.id == id) + 1, 0, data);
   render();
   plist();
-  toast('Produto duplicado.');
+  toast('Peça duplicada.');
 };
 
 const pmv = async (id, d) => {
@@ -738,7 +738,7 @@ ACT.pdel = async (id) => {
     DB.prod = DB.prod.filter(x => x.id != id);
     render();
     show(0);
-    toast('Produto excluído.');
+    toast('Peça excluída.');
   } else {
     A.del = 'p' + id;
     plist();
