@@ -39,21 +39,17 @@ const IMG = (() => {
   };
 
   const optimize = async (s, isBanner) => {
-    // Banner: começa com 1920px e tenta ficar < 250kb
-    // Produto: começa com 1200px e tenta ficar < 150kb
     let max = isBanner ? 1920 : 1200;
     let q = 0.82;
     let targetSize = isBanner ? 250 * 1024 : 150 * 1024;
     
     let b = await enc(s, max, q);
     
-    // Loop agressivo reduzindo qualidade
     while (b && b.size > targetSize && q > 0.5) {
       q -= 0.1;
       b = await enc(s, max, q);
     }
 
-    // Se mesmo assim estiver muito grande, reduz a resolução drasticamente
     if (b && b.size > targetSize * 1.5) {
       max = isBanner ? 1200 : 800;
       q = 0.6;
@@ -143,11 +139,12 @@ const IMG = (() => {
     r = R(r);
     const alt = esc(o.alt || '');
     const eager = o.eager ? ' fetchpriority="high"' : '';
+    const fallback = art(40);
     if (!r || (!r.u && !r.p)) {
-      return `<img src="${art(40)}" alt="${alt}" decoding="async"${eager}${o.eager ? '' : ' loading="lazy"'}>`;
+      return `<img src="${fallback}" alt="${alt}" decoding="async"${eager}${o.eager ? '' : ' loading="lazy"'}>`;
     }
     const src = r.u || '';
-    return `<img src="${esc(src)}" alt="${alt}" decoding="async"${eager}${o.eager ? '' : ' loading="lazy"'}>`;
+    return `<img src="${esc(src)}" onerror="this.onerror=null;this.src='${fallback}'" alt="${alt}" decoding="async"${eager}${o.eager ? '' : ' loading="lazy"'}>`;
   };
 
   const hydrate = (root) => {
