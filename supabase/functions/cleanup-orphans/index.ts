@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
 const ALLOWED_ORIGINS = ['https://wendell544.github.io'];
+const MAX_BYTES = 5 * 1024 * 1024;
 const GITHUB_API = 'https://api.github.com';
 
 function corsFor(req: Request) {
@@ -40,117 +41,96 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const userClient = createClient(supabaseUrl, supabaseAnonKey);
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-    const { data: userData, error: userError } = await userClient.auth.getUser(token);
+    const { data: userData, error: userError } = await supabase.auth.getUser(token);
     if (userError || !userData?.user) {
       return jsonFor(req, { error: 'Token inválido ou expirado.' }, 401);
     }
     if (userData.user.app_metadata?.role !== 'admin') {
-      return jsonFor(req, { error: 'Acesso negado. Apenas administradores podem limpar órfãos.' }, 403);
+      return jsonFor(req, { error: 'Acesso negado. Apenas administradores podem enviar imagens.' }, 403);
     }
 
-    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const adminClient = createClient(supabaseUrl, serviceKey);
+    const formData = await req.formData();
+    const file = formData.get('file');
+    if (!(file instanceof File)) {
+      return jsonFor(req, { error: 'Campo "file" ausente ou inválido.' }, 400);
+    }
+    if (file.type !== 'image/webp') {
+      return jsonFor(req, { error: 'Formato inválido. Envie apenas WebP.' }, 415);
+    }
+    if (file.size > MAX_BYTES) {
+      return jsonFor(req, { error: 'Arquivo muito grande. O limite é 5 MB.' }, 413);
+    }
 
-    const referenced = new Set<string>();
+    const buffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
 
-    const collectFromJsonb = (value: unknown) => {
-      if (!value) return;
-      if (typeof value === 'string') { referenced.add(value); return; }
-      if (Array.isArray(value)) {
-        value.forEach((v) => {
-          if (typeof v === 'string') referenced.add(v);
-          else if (v && typeof v === 'object' && 'u' in v && typeof (v as any).u === 'string') {
-            referenced.add((v as any).u);
-          }
-        });
-        return;
-      }
-      if (typeof value === 'object' && 'u' in value && typeof (value as any).u === 'string') {
-        referenced.add((value as any).u);
-      }
-    };
-
-    const { data: products } = await adminClient.from('products').select('images');
-    (products ?? []).forEach((p) => collectFromJsonb(p.images));
-    const { data: banners } = await adminClient.from('banners').select('img');
-    (banners ?? []).forEach((b) => collectFromJsonb(b.img));
-    const { data: ads } = await adminClient.from('ads').select('img');
-    (ads ?? []).forEach((a) => collectFromJsonb(a.img));
-    const { data: categories } = await adminClient.from('categories').select('img');
-    (categories ?? []).forEach((c) => collectFromJsonb(c.img));
+    const hashBuffer = await crypto.subtle.digest('SHA-256', bytes);
+    const hashArray = Array.from(new Uint8Array(hashBuffer).slice(0, 8));
+    const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+    const fileName = `i_${hashHex}.webp`;
+    const path = `img/${fileName}`;
 
     const ghToken = Deno.env.get('GITHUB_TOKEN');
     const owner = Deno.env.get('GITHUB_OWNER') ?? 'Wendell544';
+    // URL ATUALIZADA AQUI PARA O NOVO NOME DO REPOSITÓRIO
     const repo = Deno.env.get('GITHUB_REPO') ?? 'Blitzsaobento';
     const branch = Deno.env.get('GITHUB_BRANCH') ?? 'main';
 
     if (!ghToken) {
-      return jsonFor(req, { error: 'GITHUB_TOKEN não configurado.' }, 500);
+      return jsonFor(req, { error: 'GITHUB_TOKEN não configurado nos secrets.' }, 500);
     }
 
     const ghHeaders = {
       Authorization: `Bearer ${ghToken}`,
       Accept: 'application/vnd.github+json',
       'X-GitHub-Api-Version': '2022-11-28',
-      'User-Agent': 'Blitz-Cleanup-Orphans',
+      'User-Agent': 'Blitz-Upload-Image',
     };
 
-    const listRes = await fetch(
-      `${GITHUB_API}/repos/${owner}/${repo}/contents/img?ref=${branch}`,
-      { headers: ghHeaders },
-    );
+    const checkUrl = `${GITHUB_API}/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
+    const checkRes = await fetch(checkUrl, { headers: ghHeaders });
+    const publicUrl = `https://${owner}.github.io/${repo}/img/${fileName}`;
 
-    if (!listRes.ok) {
-      const errText = await listRes.text();
-      return jsonFor(req, { error: `Erro ao listar img/: ${listRes.status} ${errText}` }, 502);
+    if (checkRes.ok) {
+      return jsonFor(req, { url: publicUrl, name: fileName, dup: true });
+    }
+    if (checkRes.status !== 404) {
+      const errText = await checkRes.text();
+      return jsonFor(req, { error: `Erro ao verificar arquivo no GitHub: ${checkRes.status} ${errText}` }, 502);
     }
 
-    const files = await listRes.json();
-    if (!Array.isArray(files)) {
-      return jsonFor(req, { error: 'Resposta inesperada da API do GitHub.' }, 502);
-    }
+    const base64 = toBase64(bytes);
 
-    const orphans = files.filter((f: any) => {
-      if (f.type !== 'file') return false;
-      if (!/^i_[a-f0-9]+\.webp$/.test(f.name)) return false;
-      const publicUrl = `https://${owner}.github.io/${repo}/img/${f.name}`;
-      return !referenced.has(publicUrl);
+    const putRes = await fetch(`${GITHUB_API}/repos/${owner}/${repo}/contents/${path}`, {
+      method: 'PUT',
+      headers: { ...ghHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: `upload: ${fileName}`,
+        content: base64,
+        branch,
+      }),
     });
 
-    const removed: string[] = [];
-    const errors: string[] = [];
-
-    for (const file of orphans) {
-      const delRes = await fetch(
-        `${GITHUB_API}/repos/${owner}/${repo}/contents/img/${file.name}`,
-        {
-          method: 'DELETE',
-          headers: { ...ghHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message: `cleanup: remove órfão ${file.name}`,
-            sha: file.sha,
-            branch,
-          }),
-        },
-      );
-
-      if (delRes.ok) removed.push(file.name);
-      else {
-        const errText = await delRes.text();
-        errors.push(`${file.name}: ${delRes.status} ${errText}`);
-      }
+    if (!putRes.ok) {
+      const errText = await putRes.text();
+      return jsonFor(req, { error: `Erro ao comitar no GitHub: ${putRes.status} ${errText}` }, 502);
     }
 
-    return jsonFor(req, {
-      removed,
-      kept: files.length - orphans.length,
-      total: files.length,
-      errors: errors.length ? errors : undefined,
-    });
+    return jsonFor(req, { url: publicUrl, name: fileName, dup: false });
   } catch (e) {
-    console.error('cleanup-orphans:', e);
+    console.error('upload-image:', e);
     return jsonFor(req, { error: `Erro inesperado: ${e instanceof Error ? e.message : String(e)}` }, 500);
   }
 });
+
+function toBase64(bytes: Uint8Array): string {
+  const CHUNK = 0x8000;
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    const slice = bytes.subarray(i, i + CHUNK);
+    bin += String.fromCharCode.apply(null, slice as unknown as number[]);
+  }
+  return btoa(bin);
+}
