@@ -141,33 +141,37 @@ const IMG = (() => {
     const eager = o.eager ? ' fetchpriority="high"' : '';
     const fallback = art(40);
     
+    // Se não tiver imagem, mostra o fallback (com a classe sk removida)
     if (!r || (!r.u && !r.p)) {
-      return `<img src="${fallback}" alt="${alt}" decoding="async"${eager}${o.eager ? '' : ' loading="lazy"'}>`;
+      return `<img src="${fallback}" alt="${alt}" class="no-sk" decoding="async"${eager}${o.eager ? '' : ' loading="lazy"'}>`;
     }
     
     let src = r.u || '';
     
-    // === AQUI ESTÁ A CORREÇÃO DOS ERROS 404 ===
-    // Troca automaticamente a URL antiga do repositório pela nova
     if (src.includes('Bilinhajoias')) {
       src = src.replace(/Bilinhajoias/g, 'Blitzsaobento');
     }
 
-    // Se a imagem falhar (ex: foi apagada do github), carrega a imagem padrão
-    return `<img src="${esc(src)}" onerror="this.onerror=null;this.src='${fallback}'" alt="${alt}" decoding="async"${eager}${o.eager ? '' : ' loading="lazy"'}>`;
+    // Remove a classe sk da imagem para ela aparecer imediatamente
+    return `<img src="${esc(src)}" onerror="this.onerror=null;this.src='${fallback}';this.classList.add('no-sk')" alt="${alt}" class="no-sk" decoding="async"${eager}${o.eager ? '' : ' loading="lazy"'}>`;
   };
 
   const hydrate = (root) => {
     if (!root || !root.querySelectorAll) return;
-    root.querySelectorAll('img').forEach((img) => {
-      const clean = () => {
-        const parent = img.closest('.sk, .cd-i, .bn-s, .ac-i, .ct-i, .ci-i, .th, .phi, .pm-main, .pm-th');
-        if (parent) parent.classList.remove('sk');
-      };
-      if (img.complete) clean();
-      else {
-        img.addEventListener('load', clean, { once: true });
-        img.addEventListener('error', clean, { once: true });
+    root.querySelectorAll('.sk').forEach((el) => {
+      const img = el.querySelector('img');
+      if (img && img.complete && img.naturalHeight !== 0) {
+        el.classList.remove('sk');
+        el.classList.add('no-sk');
+      } else if (img) {
+        img.addEventListener('load', () => {
+          el.classList.remove('sk');
+          el.classList.add('no-sk');
+        }, { once: true });
+        img.addEventListener('error', () => {
+          el.classList.remove('sk');
+          el.classList.add('no-sk');
+        }, { once: true });
       }
     });
   };
