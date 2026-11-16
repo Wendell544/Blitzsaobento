@@ -244,7 +244,7 @@ function phs() {
       .map(
         (r, i) =>
           `<button class="phi${i === A.sel ? ' on' : ''}" data-a="psel" data-v="${i}" aria-label="Foto ${i + 1}">
-            <span class="sk">${IMG.html(r, { s: 'thumb' })}</span>${i ? '' : '<em>Principal</em>'}
+            ${IMG.html(r, { s: 'thumb' })}${i ? '' : '<em>Principal</em>'}
           </button>`
       )
       .join('') ||
@@ -270,7 +270,7 @@ function plist() {
     m
       .map(
         (p) => `<div class="ar">
-          <span class="th sk">${IMG.html(p.images?.[0], { s: 'thumb' })}</span>
+          <span class="th">${IMG.html(p.images?.[0], { s: 'thumb' })}</span>
           <div class="grow">
             <b>${esc(p.title)}</b>
             <div class="sm tm">${esc(p.category)} · ${money(pr(p))}${
@@ -481,7 +481,7 @@ function tMgr(k) {
       <div class="full col">
         <div class="lb">Imagem</div>
         <div class="row wrap" style="margin-top:8px">
-          <span class="th big sk" id="mpv"></span>
+          <span class="th big" id="mpv"></span>
           <label class="b ghost">Enviar imagem
             <input class="hid" id="mf-file" type="file" accept="image/jpeg,image/png,image/webp">
           </label>
@@ -503,7 +503,7 @@ function tMgr(k) {
     ${
       Lf.map(
         (x) => `<div class="ar">
-          <span class="th sk">${x.img ? IMG.html({ u: x.img.u || x.img }, { s: 'thumb' }) : ''}</span>
+          <span class="th">${x.img ? IMG.html({ u: x.img.u || x.img }, { s: 'thumb' }) : ''}</span>
           <div class="grow">
             <b>${esc(x.title || x.name || '(sem título)')}</b>
             <div class="sm tm">${x.on ? 'Ativo' : 'Pausado'} ${x.layout === 'vertical' ? '· Vertical' : x.layout === 'auto' ? '· Adaptável' : ''}</div>
@@ -536,7 +536,7 @@ function tSet() {
     <div class="full col">
       <div class="lb" style="margin-bottom:4px">Imagem de Fundo do Hero (Opcional)</div>
       <div class="row wrap">
-        <span class="th big sk" id="setpv"></span>
+        <span class="th big" id="setpv"></span>
         <label class="b ghost">Enviar imagem
           <input class="hid" id="sf-file" type="file" accept="image/jpeg,image/png,image/webp">
         </label>
