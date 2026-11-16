@@ -78,18 +78,18 @@ const UP =
 
 const shell = () => {
   $('adm').innerHTML = `<div class="w adin">
-    <div class="row sp wrap">
+    <div class="row sp wrap" style="margin-bottom:8px">
       <h2 class="serif h2">Painel BLITZ</h2>
       <div class="row wrap">
         <button class="b ghost" data-a="bk" aria-label="Backup">Backup</button>
         <button class="b ghost" data-a="exit">Sair</button>
       </div>
     </div>
-    <p class="sm tm" id="pst" role="status"></p>
+    <p class="sm tm" id="pst" role="status" style="margin-top:-8px"></p>
     <nav class="chips tabs" id="tabs">${TABS.map(
       (t, i) => `<button class="chip b" data-a="tab" data-v="${i}">${t}</button>`
     ).join('')}</nav>
-    <div id="ab" class="col" style="gap:16px"></div>
+    <div id="ab" class="col" style="gap:0"></div>
   </div>`;
 };
 
@@ -175,15 +175,15 @@ function tProd() {
     ['Fotos', P.reduce((n, p) => n + (p.images?.length || 0), 0)]
   ]
     .map(
-      ([k, v]) => `<div class="sf br card2">
+      ([k, v]) => `<div class="card2">
         <div class="sm tm">${k}</div>
-        <div class="serif tg h3">${esc(v)}</div>
+        <div class="serif h3">${esc(v)}</div>
       </div>`
     )
     .join('')}</div>
   ${
     Draft.get() && !A.edit
-      ? `<div class="sf br note">
+      ? `<div class="note">
           <span>Há um rascunho de produto não publicado.</span>
           <div class="row">
             <button class="b gold" data-a="drec">Recuperar</button>
@@ -192,7 +192,7 @@ function tProd() {
         </div>`
       : ''
   }
-  <section class="sf br box">
+  <section class="box">
     <h3 class="serif h3" id="pft">${A.edit ? 'Editar peça' : 'Cadastrar peça'}</h3>
     <div class="fm">
       ${F('pf-title', 'Nome da peça', 'maxlength=120', 'full')}
@@ -212,7 +212,7 @@ function tProd() {
       <div class="full col">
         <div class="lb">Fotos (a primeira é a principal)</div>
         <div class="ph" id="pph"></div>
-        <div class="row wrap">
+        <div class="row wrap" style="margin-top:8px">
           <label class="b ghost">Enviar fotos
             <input class="hid" id="pf-file" type="file" accept="image/jpeg,image/png,image/webp" multiple>
           </label>
@@ -222,15 +222,15 @@ function tProd() {
         ${UP}
       </div>
     </div>
-    <p id="perr" class="err hid"></p>
-    <div class="row wrap">
-      <button class="b gold" data-a="psave">Salvar peça</button>
+    <p id="perr" class="err hid" style="margin-bottom:12px"></p>
+    <div class="row wrap" style="margin-top:16px;border-top:1px solid var(--bd);padding-top:16px">
+      <button class="b gold" data-a="psave" style="min-width:140px">Salvar peça</button>
       <button class="b ghost" data-a="pc">Cancelar</button>
     </div>
   </section>
-  <section class="sf br box">
-    <div class="row sp wrap">
-      <h3 class="serif h3">Peças cadastradas</h3>
+  <section class="box">
+    <div class="row sp wrap" style="margin-bottom:16px">
+      <h3 class="serif h3" style="margin-bottom:0;border:0;padding:0">Peças cadastradas</h3>
       <input class="in" id="fq" placeholder="Buscar peça" style="max-width:240px" value="${esc(A.fq)}">
     </div>
     <div id="pl"></div>
@@ -252,11 +252,11 @@ function phs() {
   if (a.length)
     $('pph').insertAdjacentHTML(
       'beforeend',
-      '<div class="row wrap" style="flex-basis:100%">' +
+      '<div class="row wrap" style="flex-basis:100%;margin-top:8px">' +
         '<button class="b ghost" data-a="pph" data-v="star">Tornar principal</button>' +
         '<button class="b ghost" data-a="pph" data-v="l">‹ Mover</button>' +
         '<button class="b ghost" data-a="pph" data-v="r">Mover ›</button>' +
-        '<button class="b ghost" data-a="pph" data-v="x">Remover foto</button>' +
+        '<button class="b ghost dng" data-a="pph" data-v="x">Remover foto</button>' +
         '</div>'
     );
   IMG.hydrate?.($('pph'));
@@ -270,7 +270,7 @@ function plist() {
     m
       .map(
         (p) => `<div class="ar">
-          <span class="th br sk">${IMG.html(p.images?.[0], { s: 'thumb' })}</span>
+          <span class="th sk">${IMG.html(p.images?.[0], { s: 'thumb' })}</span>
           <div class="grow">
             <b>${esc(p.title)}</b>
             <div class="sm tm">${esc(p.category)} · ${money(pr(p))}${
@@ -288,11 +288,11 @@ function plist() {
           </div>
         </div>`
       )
-      .join('') || '<p class="tm">Nenhuma peça encontrada.</p>';
+      .join('') || '<p class="tm center" style="padding:24px 0">Nenhuma peça encontrada.</p>';
   if (l.length > m.length)
     $('pl').insertAdjacentHTML(
       'beforeend',
-      `<button class="b ghost" data-a="pmore">Ver mais (${l.length - m.length})</button>`
+      `<button class="b ghost" data-a="pmore" style="width:100%;margin-top:12px">Ver mais (${l.length - m.length})</button>`
     );
   IMG.hydrate?.($('pl'));
 }
@@ -467,9 +467,9 @@ function tMgr(k) {
     L = DB[k];
   const q = (A['q_' + k] || '').toLowerCase();
   const Lf = q ? L.filter((x) => nz(x.title || x.name || '').includes(nz(q))) : L;
-  return `<section class="sf br box">
+  return `<section class="box">
     <h3 class="serif h3">${A.m.id ? 'Editar' : 'Novo'}: ${m.t}</h3>
-    ${m.h ? `<p class="sm tm">${m.h}</p>` : ''}
+    ${m.h ? `<p class="sm tm" style="margin-top:-8px;margin-bottom:16px">${m.h}</p>` : ''}
     <div class="fm">
       ${m.f.map(([f, l, type, opts]) => {
         if (type === 'select') {
@@ -480,30 +480,30 @@ function tMgr(k) {
       <label class="chk"><input type="checkbox" id="mf-on" checked>${m.on}</label>
       <div class="full col">
         <div class="lb">Imagem</div>
-        <div class="row wrap">
-          <span class="th big br" id="mpv"></span>
+        <div class="row wrap" style="margin-top:8px">
+          <span class="th big sk" id="mpv"></span>
           <label class="b ghost">Enviar imagem
             <input class="hid" id="mf-file" type="file" accept="image/jpeg,image/png,image/webp">
           </label>
-          <button class="b ghost" data-a="mimgx">Remover imagem</button>
+          <button class="b ghost dng" data-a="mimgx">Remover imagem</button>
         </div>
         ${UP}
       </div>
     </div>
-    <div class="row">
-      <button class="b gold" data-a="msave" data-v="${k}">Salvar</button>
+    <div class="row wrap" style="margin-top:16px;border-top:1px solid var(--bd);padding-top:16px">
+      <button class="b gold" data-a="msave" data-v="${k}" style="min-width:140px">Salvar</button>
       <button class="b ghost" data-a="mnew" data-v="${k}">Novo</button>
     </div>
   </section>
-  <section class="sf br box">
-    <div class="row sp wrap">
-      <h3 class="serif h3">${m.t} cadastrados</h3>
+  <section class="box">
+    <div class="row sp wrap" style="margin-bottom:16px">
+      <h3 class="serif h3" style="margin-bottom:0;border:0;padding:0">${m.t} cadastrados</h3>
       <input class="in" data-a="msearch" data-v="${k}" placeholder="Buscar" value="${esc(A['q_' + k] || '')}" style="max-width:220px">
     </div>
     ${
       Lf.map(
         (x) => `<div class="ar">
-          <span class="th br">${x.img ? IMG.html({ u: x.img.u || x.img }, { s: 'thumb' }) : ''}</span>
+          <span class="th sk">${x.img ? IMG.html({ u: x.img.u || x.img }, { s: 'thumb' }) : ''}</span>
           <div class="grow">
             <b>${esc(x.title || x.name || '(sem título)')}</b>
             <div class="sm tm">${x.on ? 'Ativo' : 'Pausado'} ${x.layout === 'vertical' ? '· Vertical' : x.layout === 'auto' ? '· Adaptável' : ''}</div>
@@ -518,14 +518,14 @@ function tMgr(k) {
             </button>
           </div>
         </div>`
-      ).join('') || '<p class="tm">Nada cadastrado.</p>'
+      ).join('') || '<p class="tm center" style="padding:24px 0">Nada cadastrado.</p>'
     }
   </section>`;
 }
 
 function tSet() {
   const s = DB.set;
-  return `<section class="sf br box">
+  return `<section class="box">
     <h3 class="serif h3">Aparência e informações da loja</h3>
     <div class="fm">${SF.map(([k, l, t]) =>
       t === 'ta'
@@ -533,44 +533,49 @@ function tSet() {
         : `<label class="lb">${l}<input class="in" id="sf-${k}" ${t === 'n' ? 'type=number ' : ''}value="${esc(s[k])}"></label>`
     ).join('')}
     
-    <div class="full col" style="margin-top:8px">
-      <div class="lb">Imagem de Fundo do Hero (Opcional)</div>
+    <div class="full col">
+      <div class="lb" style="margin-bottom:4px">Imagem de Fundo do Hero (Opcional)</div>
       <div class="row wrap">
-        <span class="th big br" id="setpv"></span>
+        <span class="th big sk" id="setpv"></span>
         <label class="b ghost">Enviar imagem
           <input class="hid" id="sf-file" type="file" accept="image/jpeg,image/png,image/webp">
         </label>
-        <button class="b ghost" data-a="simgx">Remover imagem</button>
+        <button class="b ghost dng" data-a="simgx">Remover imagem</button>
       </div>
       ${UP}
     </div>
     
     </div>
-    <h4 class="serif h3">Seções da loja</h4>
-    <div class="row wrap" style="gap:4px 16px">${SH.map(
+    <h4 class="serif h3" style="margin-top:24px;margin-bottom:12px;border-bottom:1px solid var(--bd);padding-bottom:12px">Seções da loja</h4>
+    <div class="row wrap" style="gap:8px 16px;margin-bottom:24px">${SH.map(
       ([k, l]) => `<label class="chk"><input type="checkbox" id="ss-${k}"${s.show[k] ? ' checked' : ''}>${l}</label>`
     ).join('')}</div>
-    <div class="row">
-      <button class="b gold" data-a="sset">Salvar</button>
+    <div class="row wrap" style="border-top:1px solid var(--bd);padding-top:16px">
+      <button class="b gold" data-a="sset" style="min-width:140px">Salvar Aparência</button>
     </div>
-    <p class="sm tm" id="stq"></p>
+    <p class="sm tm" id="stq" style="margin-top:12px"></p>
     ${errLog()}
   </section>`;
 }
 
-const tPw = () => `<section class="sf br box">
+const tPw = () => `<section class="box">
   <h3 class="serif h3">Alterar senha</h3>
-  <p class="sm tm">A nova senha vale para sua conta Supabase (e-mail cadastrado).</p>
-  <input class="in" id="np" type="password" autocomplete="new-password" placeholder="Nova senha">
-  <div class="row">
-    <button class="b gold" data-a="spw">Salvar senha</button>
+  <p class="sm tm" style="margin-top:-8px;margin-bottom:16px">A nova senha vale para sua conta Supabase (e-mail cadastrado).</p>
+  <div class="fm">
+    <label class="lb full">Nova senha
+      <input class="in" id="np" type="password" autocomplete="new-password" placeholder="Mínimo 8 caracteres">
+    </label>
+  </div>
+  <div class="row wrap" style="border-top:1px solid var(--bd);padding-top:16px">
+    <button class="b gold" data-a="spw" style="min-width:140px">Salvar senha</button>
   </div>
   <div id="pwo" class="col"></div>
-  <hr style="border:0;border-top:1px solid var(--bd);margin:16px 0">
-  <h4 class="serif h3">Manutenção</h4>
-  <p class="sm tm">Remove do GitHub os arquivos <code>img/i_*.webp</code> que não estão referenciados em nenhuma tabela.</p>
-  <button class="b ghost" data-a="cleanup">Limpar imagens órfãs do GitHub</button>
-  <pre id="cleanup-out" class="sm tm" style="white-space:pre-wrap;margin-top:8px"></pre>
+</section>
+<section class="box">
+  <h3 class="serif h3">Manutenção</h3>
+  <p class="sm tm" style="margin-top:-8px;margin-bottom:16px">Remove do GitHub os arquivos <code>img/i_*.webp</code> que não estão referenciados em nenhuma tabela.</p>
+  <button class="b ghost dng" data-a="cleanup">Limpar imagens órfãs do GitHub</button>
+  <pre id="cleanup-out" class="sm tm" style="white-space:pre-wrap;margin-top:16px;padding:12px;background:var(--bg);border-radius:8px;border:1px solid var(--bd);min-height:40px"></pre>
 </section>`;
 
 const mv = async (v, d) => {
@@ -975,9 +980,9 @@ const pst = () => {
 
 const errLog = () => {
   const l = Log.get().slice(0, 6);
-  return `<details class="sm tm"><summary>Erros recentes (${l.length})</summary>${
-    l.map((x) => `<p>${new Date(x.t).toLocaleString('pt-BR')} · ${esc(x.m)}</p>`).join('') ||
-    '<p>Nenhum erro registrado.</p>'
+  return `<details class="sm tm" style="margin-top:16px;padding:12px;background:var(--bg);border-radius:8px;border:1px solid var(--bd)"><summary style="cursor:pointer;font-weight:600">Erros recentes (${l.length})</summary>${
+    l.map((x) => `<p style="margin-top:8px;padding-bottom:8px;border-bottom:1px solid var(--bd)">${new Date(x.t).toLocaleString('pt-BR')} · ${esc(x.m)}</p>`).join('') ||
+    '<p style="margin-top:8px">Nenhum erro registrado.</p>'
   }</details>`;
 };
 
