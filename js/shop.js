@@ -35,7 +35,7 @@ function hero(){
   $('hk').textContent=s.kick;
   $('ht').innerHTML=esc(s.title).replace(/(\S+)$/,'<span class="gt">$1</span>');
   $('hx').textContent=s.text;
-  $('hw').href=wa('Olá! Vim pelo site da Bilinha Jóias e Pratas e gostaria de ajuda.');
+  $('hw').href=wa('Olá! Vim pelo site da BLITZ e gostaria de ajuda.');
 }
 
 const card=p=>{
@@ -45,7 +45,7 @@ const card=p=>{
     <div class="cd-i sk" data-a="open" data-v="${p.id}" role="button" tabindex="0" aria-label="Ver ${esc(p.title)}">
       ${IMG.html(p.images[0],{alt:p.title,s:'card'})}
       ${off?`<span class="tag gold">${Math.round((1-v/p.price)*100)}% off</span>`:''}
-      ${un?'<span class="tag un">Indisponível</span>':''}
+      ${un?'<span class="tag un">Esgotado</span>':''}
       ${isNew&&!off?'<span class="tag new">Novo</span>':''}
       ${p.featured?`<span class="star" title="Destaque">${ic('star',14)}</span>`:''}
     </div>
@@ -54,7 +54,7 @@ const card=p=>{
     <div class="pr"><b class="tg">${money(v)}</b>${off?`<s class="tm sm">${money(p.price)}</s>`:''}</div>
     <p class="sm tm">${esc(inst(p))}</p>
     <div class="row">
-      <button class="b gold grow" data-a="add" data-v="${p.id}"${un?' disabled':''}>${ic('bag',16)}${un?'Indisponível':'Adicionar'}</button>
+      <button class="b gold grow" data-a="add" data-v="${p.id}"${un?' disabled':''}>${ic('bag',16)}${un?'Esgotado':'Adicionar'}</button>
       <a class="q" target="_blank" rel="noopener" aria-label="Comprar via WhatsApp" href="${esc(wa('Olá! Tenho interesse em: '+p.title+' ('+money(v)+')'))}">${ic('wa',18)}</a>
     </div>
   </article>`
@@ -79,12 +79,12 @@ function rails(){
   if(s.ads&&a.length)o.push(sec('ads','Novidades e ofertas',a.map(adCard).join(''),' rl-ads'));
   if(s.feat){
     const l=P.filter(p=>p.featured).slice(0,12);
-    if(l.length)o.push(sec('feat','Produtos em destaque',l.map(card).join('')))
+    if(l.length)o.push(sec('feat','Looks em destaque',l.map(card).join('')))
   }
   if(s.best){
     const ids=Hist.top(24);
     const l=ids.map(id=>P.find(p=>p.id===id&&p.available!==false)).filter(Boolean).slice(0,8);
-    if(l.length>=3)o.push(sec('best','Mais populares',l.map(card).join('')))
+    if(l.length>=3)o.push(sec('best','Mais vendidos',l.map(card).join('')))
   }
   if(s.news&&P.length>8){
     o.push(sec('news','Lançamentos',[...P].sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0)).slice(0,8).map(card).join('')))
@@ -121,9 +121,9 @@ function drawP(){
     <div class="pr"><b class="tg h3">${money(v)}</b>${off?`<s class="tm">${money(p.price)}</s>`:''}</div>
     <p class="sm tm">${esc(inst(p))}</p>
     <p style="white-space:pre-line">${esc(p.description)}</p>
-    ${un?'<p class="err">Peça indisponível no momento. Fale conosco para encomendar.</p>':''}
+    ${un?'<p class="err">Peça esgotada no momento. Fale conosco para encomendar.</p>':''}
     <div class="row wrap">
-      <button class="b gold grow" data-a="add" data-v="${p.id}"${un?' disabled':''}>${ic('bag',16)}${un?'Indisponível':'Adicionar à sacola'}</button>
+      <button class="b gold grow" data-a="add" data-v="${p.id}"${un?' disabled':''}>${ic('bag',16)}${un?'Esgotado':'Adicionar à sacola'}</button>
       <a class="b ghost grow" target="_blank" rel="noopener" href="${esc(wa('Olá! Tenho interesse em: '+p.title+' ('+money(v)+')'))}">${ic('wa',16)}WhatsApp</a>
       <button class="q" data-a="share" data-v="${p.id}" aria-label="Compartilhar produto">${ic('share',18)}</button>
     </div>
@@ -159,7 +159,7 @@ function footer(){
   if(/^[\w.]{1,30}$/.test(ig))L.push(`<a class="tg" target="_blank" rel="noopener" href="https://www.instagram.com/${ig}/">@${ig}</a>`);
   if(okUrl(s.fb))L.push(`<a class="tg" target="_blank" rel="noopener" href="${esc(s.fb)}">Facebook</a>`);
   if(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.email||''))L.push(`<a class="tg" href="mailto:${esc(s.email)}">${esc(s.email)}</a>`);
-  $('ft').innerHTML=`<span class="tg">${ic('gem',26)}</span><div class="serif tg h2">Bilinha Jóias e Pratas</div>${s.about?`<p style="max-width:560px">${esc(s.about)}</p>`:''}<p>${esc(s.addr)}</p><div class="lk">${L.join('')}</div><button class="dots-btn" data-a="admin" tabindex="-1" aria-hidden="true">•••</button>`
+  $('ft').innerHTML=`<span class="tg">${ic('gem',26)}</span><div class="serif tg h2">BLITZ</div>${s.about?`<p style="max-width:560px">${esc(s.about)}</p>`:''}<p>${esc(s.addr)}</p><div class="lk">${L.join('')}</div><button class="dots-btn" data-a="admin" tabindex="-1" aria-hidden="true">•••</button>`
 }
 
 const render=()=>{hero();rails();grid();cartUI();footer()};
@@ -175,7 +175,7 @@ ACT.pnav=v=>{const n=PM.p.images.length,m=$('pmb'),t=m.scrollTop;PM.i=(PM.i+ +v+
 ACT.pz=()=>{if(swp){swp=0;return}const m=$('pmb'),t=m.scrollTop;PM.z=!PM.z;drawP();m.scrollTop=t};
 ACT.add=id=>{
   const p=DB.prod.find(x=>x.id==id);
-  if(!p||p.available===false){toast('Peça indisponível no momento.');return}
+  if(!p||p.available===false){toast('Peça esgotada no momento.');return}
   const c=DB.cart.find(x=>x.id===p.id);
   if(c)c.qty=Math.min(99,c.qty+1);else DB.cart.push({id:p.id,qty:1});
   Hist.bump(p.id);cartSave();pop();toast('“'+p.title+'” foi para a sacola.');
@@ -204,7 +204,7 @@ ACT.fin=(v,a,e)=>{
   er.textContent=m;er.classList.toggle('hid',!m);
   if(m){e.preventDefault();return}
   a.href=wa([
-    '💎 *Novo pedido · Bilinha Jóias e Pratas*','',
+    '👕 *Novo pedido · BLITZ*','',
     '👤 *Cliente:* '+n,'📍 *Entrega:* '+d,'💳 *Pagamento:* '+$('pay').value,'',
     '🛍️ *Itens do pedido*',
     ...L.map(({p,qty},i)=>(i+1)+'. '+p.title+'\n    '+qty+' × '+money(pr(p))+' = '+money(pr(p)*qty)+(inst(p)?'\n    ✨ '+inst(p):'')),
