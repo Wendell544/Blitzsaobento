@@ -1,4 +1,4 @@
-﻿const V = 9, PFX = 'bilinha_joias_', KEY = {
+const V = 10, PFX = 'blitz_', KEY = {
   prod: PFX + 'products',
   cart: PFX + 'cart',
   ads: PFX + 'ads',
@@ -22,18 +22,18 @@ const SB_KEY = 'sb_publishable_OOejb1xfSYPHVD8Xf4F09g_YT_Sa5lu';
 const GH_OWNER = 'Wendell544';
 const GH_REPO = 'Bilinhajoias';
 
-const WAD = ['5583', '9990', '74027'].join('');
-const CATS0 = ['Pratas', 'Relógios', 'Alianças', 'Colares', 'Óculos', 'Combos'];
+const WAD = '5583996006884';
+const CATS0 = ['Masculino', 'Feminino', 'Infantil', 'Calçados', 'Acessórios'];
 
 const SET0 = {
   kick: 'São Bento · Paraíba',
-  title: 'Autenticidade e Tradição que Brilham em Joias',
-  text: 'Pratas 925, alianças, relógios e peças selecionadas com cuidado. Escolha o que ama e finalize no WhatsApp.',
+  title: 'O look perfeito você encontra aqui',
+  text: 'Moda masculina, feminina e infantil com as melhores tendências. Escolha o que ama e finalize no WhatsApp.',
   about: '',
   wa: WAD,
   email: '',
   addr: 'São Bento – PB',
-  ig: 'bilinha_joias',
+  ig: 'lojablitzsb',
   fb: '',
   sec: 6,
   page: 12,
@@ -118,20 +118,20 @@ const art = (h) =>
   encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><defs><radialGradient id="g" cx="50%" cy="38%" r="75%"><stop offset="0" stop-color="hsl(' +
       h +
-      ',28%,26%)"/><stop offset="1" stop-color="hsl(' +
+      ',20%,25%)"/><stop offset="1" stop-color="hsl(' +
       h +
-      ',22%,8%)"/></radialGradient></defs><rect width="400" height="400" fill="url(#g)"/><g fill="none" stroke="#D4AF37" stroke-width="3" stroke-linejoin="round"><path d="M140 150h120l40 50-100 110-100-110z"/><path d="M100 200h200M140 150l60 160 60-160M170 150l30 50 30-50"/></g><text x="200" y="365" text-anchor="middle" font-family="Georgia,serif" font-size="20" letter-spacing="6" fill="#D4AF37" opacity=".7">BILINHA</text></svg>',
+      ',15%,8%)"/></radialGradient></defs><rect width="400" height="400" fill="url(#g)"/><g fill="none" stroke="#cda353" stroke-width="3" stroke-linejoin="round"><path d="M140 120h120l20 80-30 120h-100l-30-120z"/><path d="M160 120c0 20 20 30 40 30s40-10 40-30"/></g><text x="200" y="365" text-anchor="middle" font-family="Georgia,serif" font-size="20" letter-spacing="6" fill="#cda353" opacity=".7">BLITZ</text></svg>',
   );
 
 const seed = () => [
-  ['Colar de Prata 925 com Inicial', 'Colares', 189.9, 159.9, '6x sem juros', 'Prata 925 com banho de ródio, corrente de 45 cm e fecho lagosta.', 1, 215],
-  ['Aliança de Ouro 18k', 'Alianças', 1490, 0, '10x sem juros', 'Ouro 18k, acabamento polido, 4 mm. Vendida por unidade.', 1, 42],
-  ['Relógio Cronógrafo Luxe', 'Relógios', 899.9, 749.9, '10x sem juros', 'Caixa de aço 42 mm, pulseira metálica e cronógrafo.', 0, 225],
-  ['Brinco de Pérola Natural', 'Pratas', 229.9, 0, '6x sem juros', 'Pérola natural de 8 mm com haste em prata 925.', 0, 335],
-  ['Óculos de Sol Cat-Eye', 'Óculos', 329.9, 279.9, '5x sem juros', 'Armação cat-eye em acetato, lentes com proteção UV400.', 0, 200],
-  ['Pulseira Berloque', 'Pratas', 349.9, 0, '8x sem juros', 'Prata 925 de 18 cm com fecho de segurança para berloques.', 1, 275],
-  ['Conjunto Coração Zircônia', 'Combos', 419.9, 369.9, '10x sem juros', 'Colar e brincos de coração com zircônias e banho de ródio.', 0, 350],
-  ['Anel Solitário Prata', 'Pratas', 259.9, 0, '6x sem juros', 'Solitário em prata 925 com zircônia de 6 mm. Aro ajustável.', 0, 160]
+  ['Camisa Polo Slim', 'Masculino', 129.9, 99.9, '3x sem juros', 'Camisa polo em algodão premium, caimento perfeito.', 1, 200],
+  ['Vestido Midi Elegance', 'Feminino', 189.9, 0, '4x sem juros', 'Vestido midi fluido com caimento impecável.', 1, 330],
+  ['Conjunto Infantil Verão', 'Infantil', 89.9, 0, '2x sem juros', 'Conjunto infantil confortável e fresco.', 0, 45],
+  ['Calça Cargo Moderna', 'Masculino', 159.9, 0, '3x sem juros', 'Calça cargo resistente e cheia de estilo.', 0, 110],
+  ['Bolsa Transversal', 'Acessórios', 119.9, 99.9, '2x sem juros', 'Bolsa transversal em couro sintético.', 0, 25],
+  ['Tênis Casual Urban', 'Calçados', 229.9, 0, '5x sem juros', 'Tênis casual super confortável para o dia a dia.', 1, 0],
+  ['Blusa Cropped Trend', 'Feminino', 79.9, 0, '2x sem juros', 'Blusa cropped canelada, tendência do momento.', 0, 300],
+  ['Moletom Oversized', 'Masculino', 149.9, 0, '3x sem juros', 'Moletom oversized ultra macio.', 0, 250]
 ].map((a, i) => ({
   id: i + 1,
   title: a[0],
@@ -150,18 +150,18 @@ const ads0 = () => [
   {
     id: 1,
     on: true,
-    title: 'Peça pelo WhatsApp',
-    text: 'Monte sua sacola e finalize com atendimento direto da loja.',
-    btn: 'Começar agora',
+    title: 'Atendimento VIP',
+    text: 'Monte seu look e finalize com atendimento direto da loja.',
+    btn: 'Chamar no WhatsApp',
     link: '',
     img: null
   },
   {
     id: 2,
     on: true,
-    title: 'Combos para presentear',
-    text: 'Conjuntos selecionados. Consulte condições no WhatsApp.',
-    btn: 'Consultar',
+    title: 'Novidades da Semana',
+    text: 'As últimas tendências em moda masculina e feminina.',
+    btn: 'Ver Coleção',
     link: '',
     img: null
   }
