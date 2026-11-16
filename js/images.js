@@ -140,10 +140,20 @@ const IMG = (() => {
     const alt = esc(o.alt || '');
     const eager = o.eager ? ' fetchpriority="high"' : '';
     const fallback = art(40);
+    
     if (!r || (!r.u && !r.p)) {
       return `<img src="${fallback}" alt="${alt}" decoding="async"${eager}${o.eager ? '' : ' loading="lazy"'}>`;
     }
-    const src = r.u || '';
+    
+    let src = r.u || '';
+    
+    // === AQUI ESTÁ A CORREÇÃO DOS ERROS 404 ===
+    // Troca automaticamente a URL antiga do repositório pela nova
+    if (src.includes('Bilinhajoias')) {
+      src = src.replace(/Bilinhajoias/g, 'Blitzsaobento');
+    }
+
+    // Se a imagem falhar (ex: foi apagada do github), carrega a imagem padrão
     return `<img src="${esc(src)}" onerror="this.onerror=null;this.src='${fallback}'" alt="${alt}" decoding="async"${eager}${o.eager ? '' : ' loading="lazy"'}>`;
   };
 
