@@ -16,8 +16,17 @@ const Auth = (() => {
   }
 
   async function getSession() {
-    const { data } = await SB.auth.getSession();
-    return data.session;
+    try {
+      const { data, error } = await SB.auth.getSession();
+      if (error) {
+        // Se der erro (ex: token inválido), limpa a sessão
+        await SB.auth.signOut();
+        return null;
+      }
+      return data.session;
+    } catch (e) {
+      return null;
+    }
   }
 
   return { login, logout, getSession };
