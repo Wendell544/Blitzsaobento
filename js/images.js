@@ -79,9 +79,11 @@ const IMG = (() => {
     const k = 'i:' + (await hash(full));
     if (URLS.has(k)) return { ref: { u: URLS.get(k), k }, dup: true };
 
-    const session = await SB.auth.getSession();
-    const token = session.data.session?.access_token;
-    if (!token) throw new Error('Faça login para enviar imagens.');
+    // VERIFICAÇÃO DE LOGIN SEGURA
+    const { data: { session } } = await SB.auth.getSession();
+    let token = session?.access_token;
+    
+    if (!token) throw new Error('Sessão expirada. Faça login novamente no painel para enviar imagens.');
 
     const form = new FormData();
     form.append('file', new File([full], 'upload.webp', { type: 'image/webp' }));
@@ -97,6 +99,11 @@ const IMG = (() => {
       body = await res.json();
     } catch (e) {
       throw new Error(`Resposta inválida da Edge Function (${res.status}).`);
+    }
+
+    // SE DER 401, O TOKEN EXPIROU NO MEIO DO PROCESSO
+    if (res.status === 401) {
+      throw new Error('Sessão expirada. Faça login novamente e tente enviar a foto.');
     }
 
     if (!res.ok) throw new Error(body.error || `Falha no upload (${res.status}).`);
@@ -141,7 +148,6 @@ const IMG = (() => {
     const eager = o.eager ? ' fetchpriority="high"' : '';
     const fallback = art(40);
     
-    // Se não tiver imagem, mostra o fallback (com a classe sk removida)
     if (!r || (!r.u && !r.p)) {
       return `<img src="${fallback}" alt="${alt}" class="no-sk" decoding="async"${eager}${o.eager ? '' : ' loading="lazy"'}>`;
     }
@@ -152,7 +158,6 @@ const IMG = (() => {
       src = src.replace(/Bilinhajoias/g, 'Blitzsaobento');
     }
 
-    // Remove a classe sk da imagem para ela aparecer imediatamente
     return `<img src="${esc(src)}" onerror="this.onerror=null;this.src='${fallback}';this.classList.add('no-sk')" alt="${alt}" class="no-sk" decoding="async"${eager}${o.eager ? '' : ' loading="lazy"'}>`;
   };
 
