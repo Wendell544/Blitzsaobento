@@ -26,26 +26,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="css/style.css?v=12">
-<style>
-  /* ====== LOGO: só uma das duas aparece, conforme o tema ====== */
-  .logo { position: relative; display: inline-flex; align-items: center; line-height: 0; }
-  .logo img { display: block; height: auto; }
-
-  /* Tema claro (padrão): mostra a logo clara, esconde a escura */
-  .logo-light { display: block !important; }
-  .logo-dark  { display: none  !important; }
-
-  /* Tema escuro forçado pelo botão de tema (data-theme="dark" no <html>) */
-  :root[data-theme="dark"] .logo-light { display: none  !important; }
-  :root[data-theme="dark"] .logo-dark  { display: block !important; }
-
-  /* Tema escuro do sistema (quando o usuário ainda não escolheu manualmente) */
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .logo-light { display: none  !important; }
-    :root:not([data-theme="light"]) .logo-dark  { display: block !important; }
-  }
-</style>
+<link rel="stylesheet" href="css/style.css?v=13">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
