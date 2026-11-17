@@ -38,51 +38,41 @@ const IMG = (() => {
     return b;
   };
 
-  const optimize = async (s, isBanner) => {
-    let max = isBanner ? 1920 : 1200;
+  const optimize = async (s) => {
+    let max = 1200;
     let q = 0.82;
-    let targetSize = isBanner ? 250 * 1024 : 150 * 1024;
-    
     let b = await enc(s, max, q);
-    
-    while (b && b.size > targetSize && q > 0.5) {
-      q -= 0.1;
-      b = await enc(s, max, q);
-    }
-
-    if (b && b.size > targetSize * 1.5) {
-      max = isBanner ? 1200 : 800;
-      q = 0.6;
-      b = await enc(s, max, q);
-    }
-    
+    if (b && b.size > 200 * 1024) { max = 800; q = 0.7; b = await enc(s, max, q); }
     return b;
   };
 
-  async function one(f, isBanner) {
+  async function one(f) {
     const mb = DB.set.mb || 5;
     if (f.size > mb * MB) throw new Error(`${f.name}: passa de ${mb} MB.`);
     if (!TYPES.includes(f.type) && !/\.(jpe?g|png|webp|heic|heif|gif|avif)$/i.test(f.name)) {
-      throw new Error(`${f.name}: formato não permitido (use JPG, PNG ou WebP).`);
+      throw new Error(`${f.name}: formato não permitido.`);
     }
 
     let s;
     try {
       s = await dec(f);
     } catch (e) {
-      throw new Error(`${f.name}: imagem inválida ou corrompida.`);
+      throw new Error(`${f.name}: imagem inválida.`);
     }
 
-    const full = await optimize(s, isBanner);
+    const full = await optimize(s);
     if (!full) throw new Error(`${f.name}: não foi possível processar a imagem.`);
 
+    // Cria a URL temporária para a miniatura aparecer na hora
+    const localPreview = URL.createObjectURL(full);
     const k = 'i:' + (await hash(full));
-    if (URLS.has(k)) return { ref: { u: URLS.get(k), k }, dup: true };
+    
+    if (URLS.has(k)) return { ref: { u: URLS.get(k), k, local: localPreview }, dup: true };
 
     const { data: { session } } = await SB.auth.getSession();
     const token = session?.access_token;
     
-    if (!token) throw new Error('Sessão expirada. Faça login novamente no painel para enviar imagens.');
+    if (!token) throw new Error('Sessão expirada. Faça login novamente.');
 
     const form = new FormData();
     form.append('file', new File([full], 'upload.webp', { type: 'image/webp' }));
@@ -91,7 +81,7 @@ const IMG = (() => {
       method: 'POST',
       headers: { 
         Authorization: `Bearer ${token}`,
-        apikey: SB_KEY // ESSENCIAL PARA NÃO DAR 401
+        apikey: SB_KEY 
       },
       body: form
     });
@@ -109,7 +99,7 @@ const IMG = (() => {
 
     if (!res.ok) throw new Error(body.error || `Falha no upload (${res.status}).`);
 
-    const ref = { u: body.url, k };
+    const ref = { u: body.url, k, local: localPreview };
     URLS.set(k, body.url);
     return { ref, dup: !!body.dup };
   }
@@ -149,19 +139,17 @@ const IMG = (() => {
     const eager = o.eager ? ' fetchpriority="high"' : '';
     const fallback = art(40);
     
-    // Se não tiver imagem, mostra o fallback
-    if (!r || (!r.u && !r.p)) {
+    if (!r || (!r.u && !r.p && !r.local)) {
       return `<img src="${fallback}" alt="${alt}" class="no-sk" decoding="async"${eager}${o.eager ? '' : ' loading="lazy"'}>`;
     }
     
-    let src = r.u || '';
-    
-    // Corrige o link antigo se por acaso ainda existir no banco
+    let src = r.local || r.u || '';
+
+    // 🚨 AQUI ESTÁ O CONSERTO: Troca o nome do repositório antigo pelo novo
     if (src.includes('Bilinhajoias')) {
       src = src.replace(/Bilinhajoias/g, 'Blitzsaobento');
     }
 
-    // Se a imagem der erro (404), troca pela arte padrão e some com o icone quebrado
     return `<img src="${esc(src)}" onerror="this.onerror=null;this.src='${fallback}';this.classList.add('no-sk')" alt="${alt}" class="no-sk" decoding="async"${eager}${o.eager ? '' : ' loading="lazy"'}>`;
   };
 
