@@ -55,11 +55,9 @@ textarea.in{resize:vertical}
 
 /* =========================================================
    LOGO — UMA ÚNICA ÂNCORA COM BACKGROUND-IMAGE
-   ✅ Clara: https://i.postimg.cc/L5Jk5c37/...png
-   ✅ Escura: https://i.postimg.cc/pTZcKM8D/...png
    ========================================================= */
 .logo{
-  --logo-src: url('https://i.postimg.cc/L5Jk5c37/7923484D-9322-4FA6-A751-425F3348C045.png');
+  --logo-src: url('https://i.postimg.cc/6qQDbpfs/8B24DB08-30E3-421E-8A94-F0BD8303744D.png');
   display:block;
   flex:none;
   height:52px;
@@ -70,19 +68,14 @@ textarea.in{resize:vertical}
   background-position:left center;
   transition:height .2s, width .2s;
 }
-
-/* Tema escuro pelo botão */
 :root[data-theme="dark"] .logo{
   --logo-src: url('https://i.postimg.cc/pTZcKM8D/4FACE84E-ED2F-40C3-9349-DA80AC1371CC.png');
 }
-
-/* Tema escuro do sistema (quando ainda não escolheu manualmente) */
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]) .logo{
     --logo-src: url('https://i.postimg.cc/pTZcKM8D/4FACE84E-ED2F-40C3-9349-DA80AC1371CC.png');
   }
 }
-
 @media (max-width:480px){.logo{height:44px;width:150px}}
 @media (max-width:360px){.logo{height:38px;width:130px}}
 
@@ -153,6 +146,8 @@ textarea.in{resize:vertical}
 /* =========================================================
    MODAL DE PRODUTO — REDESENHADO
    ========================================================= */
+
+/* ---------- Wrapper (overlay) ---------- */
 .pm{
   padding:24px;
   background:rgba(0,0,0,.65);
@@ -168,6 +163,7 @@ textarea.in{resize:vertical}
   }
 }
 
+/* ---------- Container (painel do modal) ---------- */
 .pm>div{
   position:relative;
   width:100%;
@@ -195,11 +191,12 @@ textarea.in{resize:vertical}
   .pm>div{
     display:grid;
     grid-template-columns:minmax(0, 1.1fr) minmax(0, 1fr);
-    align-items:start;
+    align-items:start;   /* ← NÃO estica mais! */
     gap:0;
   }
 }
 
+/* ---------- Botão fechar ---------- */
 .pm .x{
   position:absolute;
   top:16px;
@@ -231,10 +228,12 @@ textarea.in{resize:vertical}
   }
 }
 
+/* ---------- Coluna da imagem ---------- */
 .pm-img{
   display:flex;
   flex-direction:column;
   gap:14px;
+  /* mobile: padding-top extra p/ o X não cobrir a foto */
   padding:64px 16px 24px;
 }
 @media(min-width:900px){
@@ -243,6 +242,7 @@ textarea.in{resize:vertical}
   }
 }
 
+/* ---------- Imagem principal ---------- */
 .pm-main{
   position:relative;
   width:100%;
@@ -257,6 +257,7 @@ textarea.in{resize:vertical}
 .pm-main.zm{ cursor:zoom-out; }
 .pm-main.zm img{ object-fit:contain; background:#000; }
 
+/* ---------- Contador ---------- */
 .pm-c{
   position:absolute;
   bottom:12px;
@@ -270,6 +271,7 @@ textarea.in{resize:vertical}
   font-weight:500;
 }
 
+/* ---------- Setas de navegação ---------- */
 .pm-a{
   position:absolute;
   top:50%;
@@ -283,6 +285,7 @@ textarea.in{resize:vertical}
 .pm-a.pv{ left:12px; }
 .pm-a.nx{ right:12px; }
 
+/* ---------- Miniaturas ---------- */
 .pm-thumbs{
   display:flex;
   gap:8px;
@@ -308,6 +311,7 @@ textarea.in{resize:vertical}
 .pm-th:hover{ transform:scale(1.05); }
 .pm-th.on{ border-color:var(--gd); }
 
+/* ---------- Coluna de informações ---------- */
 .pm-info{
   display:flex;
   flex-direction:column;
@@ -316,11 +320,12 @@ textarea.in{resize:vertical}
 }
 @media(min-width:900px){
   .pm-info{
-    padding:36px 72px 40px 8px;
+    padding:36px 72px 40px 8px;  /* 72px à direita reserva espaço pro X */
     gap:18px;
   }
 }
 
+/* ---------- Texto do info ---------- */
 .pm-info .kick{
   font-size:11px;
   letter-spacing:.22em;
@@ -366,6 +371,7 @@ textarea.in{resize:vertical}
   font-size:.9rem;
 }
 
+/* ---------- Relacionados ---------- */
 .rel{ margin-top:28px; }
 .rel-rl{ padding-bottom:12px; }
 
@@ -391,7 +397,7 @@ textarea.in{resize:vertical}
 .al{overflow:hidden}
 
 /* =========================================
-   PAINEL ADMINISTRATIVO
+   PAINEL ADMINISTRATIVO (inalterado)
    ========================================= */
 .adm{position:fixed;inset:0;background:var(--bg);z-index:60;overflow-y:auto}
 .adin{max-width:1000px;margin:0 auto;padding:24px 16px 80px;display:flex;flex-direction:column;gap:20px}
