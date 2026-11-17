@@ -5,6 +5,8 @@ const IMG = (() => {
   const UPLOAD_URL = `${SB_URL}/functions/v1/upload-image`;
 
   const URLS = new Map();
+  // blob: URLs criadas nesta sessão. As que ficaram salvas de sessões antigas já não existem mais.
+  const LIVE = new Set();
 
   const dec = (f) =>
     'createImageBitmap' in window
@@ -65,6 +67,7 @@ const IMG = (() => {
 
     // Cria a URL temporária para a miniatura aparecer na hora
     const localPreview = URL.createObjectURL(full);
+    LIVE.add(localPreview);
     const k = 'i:' + (await hash(full));
     
     if (URLS.has(k)) return { ref: { u: URLS.get(k), k, local: localPreview }, dup: true };
@@ -143,7 +146,8 @@ const IMG = (() => {
       return `<img src="${fallback}" alt="${alt}" class="no-sk" decoding="async"${eager}${o.eager ? '' : ' loading="lazy"'}>`;
     }
     
-    let src = r.local || r.u || '';
+    // Só usa a prévia local se ela ainda existe (criada nesta sessão); senão, usa a URL do GitHub.
+    let src = (r.local && LIVE.has(r.local) ? r.local : r.u) || '';
 
     // 🚨 AQUI ESTÁ O CONSERTO: Troca o nome do repositório antigo pelo novo
     if (src.includes('Bilinhajoias')) {
