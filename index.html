@@ -26,7 +26,26 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="css/style.css?v=11">
+<link rel="stylesheet" href="css/style.css?v=12">
+<style>
+  /* ====== LOGO: só uma das duas aparece, conforme o tema ====== */
+  .logo { position: relative; display: inline-flex; align-items: center; line-height: 0; }
+  .logo img { display: block; height: auto; }
+
+  /* Tema claro (padrão): mostra a logo clara, esconde a escura */
+  .logo-light { display: block !important; }
+  .logo-dark  { display: none  !important; }
+
+  /* Tema escuro forçado pelo botão de tema (data-theme="dark" no <html>) */
+  :root[data-theme="dark"] .logo-light { display: none  !important; }
+  :root[data-theme="dark"] .logo-dark  { display: block !important; }
+
+  /* Tema escuro do sistema (quando o usuário ainda não escolheu manualmente) */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .logo-light { display: none  !important; }
+    :root:not([data-theme="light"]) .logo-dark  { display: block !important; }
+  }
+</style>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -51,10 +70,12 @@
 <body>
 <header class="hd">
   <div class="w">
+    <!-- 🔽 TROQUE AS URLS DAS LOGOS AQUI (logo-light = tema claro · logo-dark = tema escuro) -->
     <a href="#top" class="logo" aria-label="BLITZ - Paixão pela Moda">
       <img src="https://i.postimg.cc/TPx3QptJ/e5fa1af3-9227-4f5b-945e-1b10748a5480.png" class="logo-light" alt="BLITZ">
-      <img src="https://i.postimg.cc/KYhRV98D/be13b1f6-75dc-404b-a0cc-6a002da67e7c.png" class="logo-dark" alt="BLITZ">
+      <img src="https://i.postimg.cc/KYhRV98D/be13b1f6-75dc-404b-a0cc-6a002da67e7c.png" class="logo-dark"  alt="BLITZ">
     </a>
+    <!-- 🔼 -->
     <div class="hs"><i data-i="search" data-s="18"></i><input id="qh" class="in qi" placeholder="Buscar roupas ou categorias" aria-label="Buscar"></div>
     <div class="row" style="margin-left:auto">
       <button class="q" data-a="theme" aria-label="Alternar tema"><i data-i="moon" data-s="18"></i></button>
@@ -123,12 +144,12 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
 
-<script src="js/config.js?v=11" defer></script>
-<script src="js/storage.js?v=11" defer></script>
-<script src="js/images.js?v=11" defer></script>
-<script src="js/auth.js?v=11" defer></script>
-<script src="js/shop.js?v=11" defer></script>
-<script src="js/admin.js?v=11" defer></script>
-<script src="js/app.js?v=11" defer></script>
+<script src="js/config.js?v=12" defer></script>
+<script src="js/storage.js?v=12" defer></script>
+<script src="js/images.js?v=12" defer></script>
+<script src="js/auth.js?v=12" defer></script>
+<script src="js/shop.js?v=12" defer></script>
+<script src="js/admin.js?v=12" defer></script>
+<script src="js/app.js?v=12" defer></script>
 </body>
 </html>
