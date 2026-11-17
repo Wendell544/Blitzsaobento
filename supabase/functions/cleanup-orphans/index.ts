@@ -1,7 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
 const ALLOWED_ORIGINS = ['https://wendell544.github.io'];
-const MAX_BYTES = 5 * 1024 * 1024;
 const GITHUB_API = 'https://api.github.com';
 
 function corsFor(req: Request) {
@@ -37,100 +36,132 @@ Deno.serve(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization') ?? '';
     const token = authHeader.replace(/^Bearer\s+/i, '');
-    if (!token) return jsonFor(req, { error: 'Token de autenticação ausente.' }, 401);
+    if (!token) {
+      return jsonFor(req, { error: 'Token de autenticação ausente.' }, 401);
+    }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const userClient = createClient(supabaseUrl, supabaseAnonKey);
 
-    const { data: userData, error: userError } = await supabase.auth.getUser(token);
+    const { data: userData, error: userError } = await userClient.auth.getUser(token);
     if (userError || !userData?.user) {
       return jsonFor(req, { error: 'Token inválido ou expirado.' }, 401);
     }
     if (userData.user.app_metadata?.role !== 'admin') {
-      return jsonFor(req, { error: 'Acesso negado. Apenas administradores podem enviar imagens.' }, 403);
+      return jsonFor(req, { error: 'Acesso negado. Apenas administradores.' }, 403);
     }
 
-    const formData = await req.formData();
-    const file = formData.get('file');
-    if (!(file instanceof File)) {
-      return jsonFor(req, { error: 'Campo "file" ausente ou inválido.' }, 400);
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    if (!serviceKey) {
+      return jsonFor(req, { error: 'SUPABASE_SERVICE_ROLE_KEY não configurada.' }, 500);
     }
-    if (file.type !== 'image/webp') {
-      return jsonFor(req, { error: 'Formato inválido. Envie apenas WebP.' }, 415);
-    }
-    if (file.size > MAX_BYTES) {
-      return jsonFor(req, { error: 'Arquivo muito grande. O limite é 5 MB.' }, 413);
-    }
+    const adminClient = createClient(supabaseUrl, serviceKey);
 
-    const buffer = await file.arrayBuffer();
-    const bytes = new Uint8Array(buffer);
+    const referenced = new Set<string>();
+    const collect = (val: unknown) => {
+      if (!val) return;
+      if (typeof val === 'string') { referenced.add(val); return; }
+      if (Array.isArray(val)) {
+        val.forEach((v) => {
+          if (typeof v === 'string') referenced.add(v);
+          else if (v && typeof v === 'object' && 'u' in v && typeof (v as any).u === 'string') {
+            referenced.add((v as any).u);
+          }
+        });
+        return;
+      }
+      if (typeof val === 'object' && 'u' in val && typeof (val as any).u === 'string') {
+        referenced.add((val as any).u);
+      }
+    };
 
-    const hashBuffer = await crypto.subtle.digest('SHA-256', bytes);
-    const hashArray = Array.from(new Uint8Array(hashBuffer).slice(0, 8));
-    const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-    const fileName = `i_${hashHex}.webp`;
-    const path = `img/${fileName}`;
+    const tables = [
+      { table: 'products', column: 'images' },
+      { table: 'banners', column: 'img' },
+      { table: 'ads', column: 'img' },
+      { table: 'categories', column: 'img' },
+    ];
+
+    for (const { table, column } of tables) {
+      const { data, error } = await adminClient.from(table).select(column);
+      if (error) {
+        return jsonFor(req, { error: `Erro ao ler ${table}: ${error.message}` }, 500);
+      }
+      (data ?? []).forEach((row: any) => collect(row[column]));
+    }
 
     const ghToken = Deno.env.get('GITHUB_TOKEN');
-    const owner = Deno.env.get('GITHUB_OWNER') ?? 'Wendell544';
-    // URL ATUALIZADA AQUI PARA O NOVO NOME DO REPOSITÓRIO
-    const repo = Deno.env.get('GITHUB_REPO') ?? 'Blitzsaobento';
-    const branch = Deno.env.get('GITHUB_BRANCH') ?? 'main';
+    const owner = Deno.env.get('GITHUB_OWNER');
+    const repo = Deno.env.get('GITHUB_REPO');
+    const branch = Deno.env.get('GITHUB_BRANCH');
 
-    if (!ghToken) {
-      return jsonFor(req, { error: 'GITHUB_TOKEN não configurado nos secrets.' }, 500);
+    if (!ghToken || !owner || !repo || !branch) {
+      return jsonFor(req, { 
+        error: 'Configuração do GitHub incompleta. Verifique os secrets: GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH.' 
+      }, 500);
     }
 
     const ghHeaders = {
       Authorization: `Bearer ${ghToken}`,
       Accept: 'application/vnd.github+json',
       'X-GitHub-Api-Version': '2022-11-28',
-      'User-Agent': 'Blitz-Upload-Image',
+      'User-Agent': 'Blitz-Cleanup-Orphans',
     };
 
-    const checkUrl = `${GITHUB_API}/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
-    const checkRes = await fetch(checkUrl, { headers: ghHeaders });
-    const publicUrl = `https://${owner}.github.io/${repo}/img/${fileName}`;
+    const listUrl = `${GITHUB_API}/repos/${owner}/${repo}/contents/img?ref=${branch}`;
+    const listRes = await fetch(listUrl, { headers: ghHeaders });
 
-    if (checkRes.ok) {
-      return jsonFor(req, { url: publicUrl, name: fileName, dup: true });
-    }
-    if (checkRes.status !== 404) {
-      const errText = await checkRes.text();
-      return jsonFor(req, { error: `Erro ao verificar arquivo no GitHub: ${checkRes.status} ${errText}` }, 502);
+    if (!listRes.ok) {
+      const errText = await listRes.text();
+      return jsonFor(req, { error: `Falha ao listar img/: ${listRes.status} ${errText}` }, 502);
     }
 
-    const base64 = toBase64(bytes);
+    const files = await listRes.json();
+    if (!Array.isArray(files)) {
+      return jsonFor(req, { error: 'Resposta inesperada da API do GitHub.' }, 502);
+    }
 
-    const putRes = await fetch(`${GITHUB_API}/repos/${owner}/${repo}/contents/${path}`, {
-      method: 'PUT',
-      headers: { ...ghHeaders, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: `upload: ${fileName}`,
-        content: base64,
-        branch,
-      }),
+    const orphans = files.filter((f: any) => {
+      if (f.type !== 'file') return false;
+      if (!/^i_[a-f0-9]+\.webp$/.test(f.name)) return false;
+      const publicUrl = `https://${owner}.github.io/${repo}/img/${f.name}`;
+      return !referenced.has(publicUrl);
     });
 
-    if (!putRes.ok) {
-      const errText = await putRes.text();
-      return jsonFor(req, { error: `Erro ao comitar no GitHub: ${putRes.status} ${errText}` }, 502);
+    const removed: string[] = [];
+    const errors: string[] = [];
+
+    for (const file of orphans) {
+      const delUrl = `${GITHUB_API}/repos/${owner}/${repo}/contents/img/${file.name}`;
+      const delRes = await fetch(delUrl, {
+        method: 'DELETE',
+        headers: { ...ghHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: `cleanup: remove órfão ${file.name}`,
+          sha: file.sha,
+          branch,
+        }),
+      });
+
+      if (delRes.ok) {
+        removed.push(file.name);
+      } else {
+        const errText = await delRes.text();
+        errors.push(`${file.name}: ${delRes.status} ${errText}`);
+      }
     }
 
-    return jsonFor(req, { url: publicUrl, name: fileName, dup: false });
+    return jsonFor(req, {
+      removed,
+      kept: files.length - orphans.length,
+      total: files.length,
+      errors: errors.length ? errors : undefined,
+    });
   } catch (e) {
-    console.error('upload-image:', e);
-    return jsonFor(req, { error: `Erro inesperado: ${e instanceof Error ? e.message : String(e)}` }, 500);
+    console.error('cleanup-orphans erro inesperado:', e);
+    return jsonFor(req, { 
+      error: `Erro inesperado: ${e instanceof Error ? e.message : String(e)}` 
+    }, 500);
   }
 });
-
-function toBase64(bytes: Uint8Array): string {
-  const CHUNK = 0x8000;
-  let bin = '';
-  for (let i = 0; i < bytes.length; i += CHUNK) {
-    const slice = bytes.subarray(i, i + CHUNK);
-    bin += String.fromCharCode.apply(null, slice as unknown as number[]);
-  }
-  return btoa(bin);
-}
