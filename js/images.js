@@ -79,9 +79,8 @@ const IMG = (() => {
     const k = 'i:' + (await hash(full));
     if (URLS.has(k)) return { ref: { u: URLS.get(k), k }, dup: true };
 
-    // VERIFICAÇÃO DE LOGIN SEGURA
     const { data: { session } } = await SB.auth.getSession();
-    let token = session?.access_token;
+    const token = session?.access_token;
     
     if (!token) throw new Error('Sessão expirada. Faça login novamente no painel para enviar imagens.');
 
@@ -90,7 +89,10 @@ const IMG = (() => {
 
     const res = await fetch(UPLOAD_URL, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { 
+        Authorization: `Bearer ${token}`,
+        apikey: SB_KEY // ESSENCIAL PARA NÃO DAR 401
+      },
       body: form
     });
 
@@ -101,7 +103,6 @@ const IMG = (() => {
       throw new Error(`Resposta inválida da Edge Function (${res.status}).`);
     }
 
-    // SE DER 401, O TOKEN EXPIROU NO MEIO DO PROCESSO
     if (res.status === 401) {
       throw new Error('Sessão expirada. Faça login novamente e tente enviar a foto.');
     }
@@ -148,16 +149,19 @@ const IMG = (() => {
     const eager = o.eager ? ' fetchpriority="high"' : '';
     const fallback = art(40);
     
+    // Se não tiver imagem, mostra o fallback
     if (!r || (!r.u && !r.p)) {
       return `<img src="${fallback}" alt="${alt}" class="no-sk" decoding="async"${eager}${o.eager ? '' : ' loading="lazy"'}>`;
     }
     
     let src = r.u || '';
     
+    // Corrige o link antigo se por acaso ainda existir no banco
     if (src.includes('Bilinhajoias')) {
       src = src.replace(/Bilinhajoias/g, 'Blitzsaobento');
     }
 
+    // Se a imagem der erro (404), troca pela arte padrão e some com o icone quebrado
     return `<img src="${esc(src)}" onerror="this.onerror=null;this.src='${fallback}';this.classList.add('no-sk')" alt="${alt}" class="no-sk" decoding="async"${eager}${o.eager ? '' : ' loading="lazy"'}>`;
   };
 
