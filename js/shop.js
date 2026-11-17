@@ -110,24 +110,46 @@ function drawP(){
   const rel=DB.prod.filter(x=>x.id!==p.id&&x.category===p.category&&x.available!==false)
     .sort((a,b)=>(b.featured?1:0)-(a.featured?1:0))
     .slice(0,4);
-  $('pmb').innerHTML=`<button class="q x" data-a="close" aria-label="Fechar">${ic('x',18)}</button>
-  <div class="col">
-    <div class="pm-main sk${PM.z?' zm':''}" data-a="pz" role="button" tabindex="0" aria-label="${PM.z?'Fechar ampliação':'Ampliar foto'}">${IMG.html(im[PM.i],{s:PM.z?'full':'mid',alt:p.title,eager:1,now:1})}${im.length>1?`<button class="q pm-a pv" data-a="pnav" data-v="-1" aria-label="Foto anterior">${ic('prev')}</button><button class="q pm-a nx" data-a="pnav" data-v="1" aria-label="Próxima foto">${ic('next')}</button><span class="pm-c">${PM.i+1}/${im.length}</span>`:''}</div>
-    ${im.length>1?`<div class="row wrap">${im.map((r,i)=>`<button class="pm-th${i===PM.i?' on':''}" data-a="pimg" data-v="${i}" aria-label="Foto ${i+1}">${IMG.html(r,{s:'thumb',now:1})}</button>`).join('')}</div>`:''}
+  $('pmb').innerHTML=`
+  <button class="q x" data-a="close" aria-label="Fechar">${ic('x',18)}</button>
+
+  <div class="pm-img">
+    <div class="pm-main sk${PM.z?' zm':''}" data-a="pz" role="button" tabindex="0" aria-label="${PM.z?'Fechar ampliação':'Ampliar foto'}">
+      ${IMG.html(im[PM.i],{s:PM.z?'full':'mid',alt:p.title,eager:1,now:1})}
+      ${im.length>1?`
+        <button class="q pm-a pv" data-a="pnav" data-v="-1" aria-label="Foto anterior">${ic('prev')}</button>
+        <button class="q pm-a nx" data-a="pnav" data-v="1" aria-label="Próxima foto">${ic('next')}</button>
+        <span class="pm-c">${PM.i+1}/${im.length}</span>
+      `:''}
+    </div>
+    ${im.length>1?`
+      <div class="pm-thumbs">
+        ${im.map((r,i)=>`<button class="pm-th${i===PM.i?' on':''}" data-a="pimg" data-v="${i}" aria-label="Foto ${i+1}">${IMG.html(r,{s:'thumb',now:1})}</button>`).join('')}
+      </div>
+    `:''}
   </div>
-  <div class="col" style="gap:10px">
+
+  <div class="pm-info">
     <p class="kick tg">${esc(p.category)}</p>
-    <h2 class="serif h2">${esc(p.title)}</h2>
-    <div class="pr"><b class="tg h3">${money(v)}</b>${off?`<s class="tm">${money(p.price)}</s>`:''}</div>
+    <h2 class="serif h2 pm-title">${esc(p.title)}</h2>
+    <div class="pm-price">
+      <b>${money(v)}</b>
+      ${off?`<s>${money(p.price)}</s>`:''}
+    </div>
     <p class="sm tm">${esc(inst(p))}</p>
-    <p style="white-space:pre-line">${esc(p.description)}</p>
+    <p class="pm-desc">${esc(p.description)}</p>
     ${un?'<p class="err">Peça esgotada no momento. Fale conosco para encomendar.</p>':''}
-    <div class="row wrap">
+    <div class="row wrap pm-actions">
       <button class="b gold grow" data-a="add" data-v="${p.id}"${un?' disabled':''}>${ic('bag',16)}${un?'Esgotado':'Adicionar à sacola'}</button>
       <a class="b ghost grow" target="_blank" rel="noopener" href="${esc(wa('Olá! Tenho interesse em: '+p.title+' ('+money(v)+')'))}">${ic('wa',16)}WhatsApp</a>
       <button class="q" data-a="share" data-v="${p.id}" aria-label="Compartilhar produto">${ic('share',18)}</button>
     </div>
-    ${rel.length?`<div class="rel"><h4 class="serif h3">Você também pode gostar</h4><div class="rl rel-rl">${rel.map(card).join('')}</div></div>`:''}
+    ${rel.length?`
+      <div class="rel">
+        <h4 class="serif h3">Você também pode gostar</h4>
+        <div class="rl rel-rl">${rel.map(card).join('')}</div>
+      </div>
+    `:''}
   </div>`;
   IMG.hydrate($('pmb'))
 }
