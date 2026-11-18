@@ -112,14 +112,17 @@ const IMG = (() => {
     return { refs, errs, dups };
   }
 
-  // Se a URL for do repo novo (Sualoja) mas a foto estiver no antigo (ou vice-versa),
-  // tenta o outro repositório antes de desistir.
-  function altRepoUrl(src) {
-    if (!/\/img\/i_[a-f0-9]+\.webp/i.test(src)) return '';
-    if (src.includes('/Sualoja/'))        return src.replace('/Sualoja/', '/Blitzsaobento/');
-    if (src.includes('/Blitzsaobento/'))  return src.replace('/Blitzsaobento/', '/Sualoja/');
-    if (src.includes('/Bilinhajoias/'))   return src.replace('/Bilinhajoias/', '/Sualoja/');
-    return '';
+  // Lista de URLs alternativas para tentar se a principal der 404.
+  // Cobre os repositórios conhecidos: Sualoja (novo), Blitzsaobento e Bilinhajoias (antigos).
+  const ALL_REPOS = ['Sualoja', 'Blitzsaobento', 'Bilinhajoias'];
+  function altRepoUrls(src) {
+    const m = src.match(/\/([^/]+)\/img\/(i_[a-f0-9]+\.webp)/i);
+    if (!m) return [];
+    const fileName = m[2];
+    const current = m[1];
+    return ALL_REPOS
+      .filter((r) => r.toLowerCase() !== current.toLowerCase())
+      .map((r) => `https://wendell544.github.io/${r}/img/${fileName}`);
   }
 
   const html = (r, o = {}) => {
@@ -132,25 +135,32 @@ const IMG = (() => {
       return `<img src="${fallback}" alt="${alt}" class="no-sk" decoding="async"${eager}${o.eager ? '' : ' loading="lazy"'}>`;
     }
 
+    // Se existir prévia local da sessão atual, usa ela (não dá 404 mesmo se o upload falhou).
     const src = (r.local && LIVE.has(r.local) ? r.local : r.u) || '';
-    const fb = altRepoUrl(src);
+    const alts = altRepoUrls(src);
+    const altsAttr = alts.length ? ` data-alts='${esc(JSON.stringify(alts))}'` : '';
 
-    // onerror em 2 estágios: 1) tenta o outro repo → 2) cai no SVG padrão
-    const onerr = "if(this.dataset.retried){this.onerror=null;this.src=this.dataset.fbDefault;this.classList.add('no-sk')}else{this.dataset.retried='1';this.src=this.dataset.fb||this.dataset.fbDefault}";
-    const fbAttr = fb ? ` data-fb="${esc(fb)}"` : '';
+    // onerror inline: tenta cada repo alternativo; quando esgotar, cai no SVG padrão.
+    const onerr = "var a=JSON.parse(this.dataset.alts||'[]');if(a.length){this.src=a.shift();this.dataset.alts=JSON.stringify(a)}else{this.onerror=null;this.src=this.dataset.fbDefault;this.classList.add('no-sk')}";
 
-    return `<img src="${esc(src)}"${fbAttr} data-fb-default="${fallback}" onerror="${onerr}" alt="${alt}" class="no-sk" decoding="async"${eager}${o.eager ? '' : ' loading="lazy"'}>`;
+    return `<img src="${esc(src)}"${altsAttr} data-fb-default="${fallback}" onerror="${onerr}" alt="${alt}" class="no-sk" decoding="async"${eager}${o.eager ? '' : ' loading="lazy"'}>`;
   };
 
   const hydrate = (root) => {
     if (!root || !root.querySelectorAll) return;
     root.querySelectorAll('.sk').forEach((el) => {
       const img = el.querySelector('img');
-      if (img && img.complete && img.naturalHeight !== 0) {
+      if (!img) return;
+      if (img.complete && img.naturalHeight !== 0) {
         el.classList.remove('sk'); el.classList.add('no-sk');
-      } else if (img) {
+      } else {
         img.addEventListener('load', () => { el.classList.remove('sk'); el.classList.add('no-sk'); }, { once: true });
-        img.addEventListener('error', () => { el.classList.remove('sk'); el.classList.add('no-sk'); }, { once: true });
+        img.addEventListener('error', () => {
+          // não remove imediatamente: o onerror inline pode trocar o src; só remove se ainda falhar
+          setTimeout(() => {
+            if (!img.naturalHeight) { el.classList.remove('sk'); el.classList.add('no-sk'); }
+          }, 50);
+        }, { once: true });
       }
     });
   };
