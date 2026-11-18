@@ -60,7 +60,16 @@ const IMG = (() => {
     const k = 'i:' + (await hash(full));
     if (URLS.has(k)) return { ref: { u: URLS.get(k), k, local: localPreview }, dup: true };
 
-    const { data: { session } } = await SB.auth.getSession();
+    // ---- Token com refresh preventivo (evita 401 por token velho) ----
+    let session = (await SB.auth.getSession()).data.session;
+    if (!session) throw new Error('Sessão expirada. Faça login novamente.');
+
+    // Se faltar menos de 60s para expirar (ou já expirou), tenta renovar.
+    if (session.expires_at && session.expires_at * 1000 - Date.now() < 60_000) {
+      const { data: refreshData } = await SB.auth.refreshSession();
+      if (refreshData?.session) session = refreshData.session;
+    }
+
     const token = session?.access_token;
     if (!token) throw new Error('Sessão expirada. Faça login novamente.');
 
@@ -77,7 +86,29 @@ const IMG = (() => {
     try { body = await res.json(); }
     catch (e) { throw new Error(`Resposta inválida da Edge Function (${res.status}).`); }
 
-    if (res.status === 401) throw new Error('Sessão expirada. Faça login novamente.');
+    if (res.status === 401) {
+      // Tenta um refresh de sessão e repete UMA vez.
+      const { data: refreshData } = await SB.auth.refreshSession();
+      if (refreshData?.session) {
+        const retry = await fetch(UPLOAD_URL, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${refreshData.session.access_token}`,
+            apikey: SB_KEY,
+          },
+          body: form,
+        });
+        let body2;
+        try { body2 = await retry.json(); } catch (e) {}
+        if (retry.ok && body2?.url) {
+          const ref = { u: body2.url, k, local: localPreview };
+          URLS.set(k, body2.url);
+          return { ref, dup: !!body2.dup };
+        }
+        throw new Error(body2?.error || 'Sessão expirada. Faça login novamente.');
+      }
+      throw new Error(body?.error || 'Sessão expirada. Faça login novamente.');
+    }
     if (!res.ok) throw new Error(body.error || `Falha no upload (${res.status}).`);
 
     const ref = { u: body.url, k, local: localPreview };
@@ -113,7 +144,6 @@ const IMG = (() => {
   }
 
   // Lista de URLs alternativas para tentar se a principal der 404.
-  // Cobre os repositórios conhecidos: Sualoja (novo), Blitzsaobento e Bilinhajoias (antigos).
   const ALL_REPOS = ['Sualoja', 'Blitzsaobento', 'Bilinhajoias'];
   function altRepoUrls(src) {
     const m = src.match(/\/([^/]+)\/img\/(i_[a-f0-9]+\.webp)/i);
@@ -135,12 +165,10 @@ const IMG = (() => {
       return `<img src="${fallback}" alt="${alt}" class="no-sk" decoding="async"${eager}${o.eager ? '' : ' loading="lazy"'}>`;
     }
 
-    // Se existir prévia local da sessão atual, usa ela (não dá 404 mesmo se o upload falhou).
     const src = (r.local && LIVE.has(r.local) ? r.local : r.u) || '';
     const alts = altRepoUrls(src);
     const altsAttr = alts.length ? ` data-alts='${esc(JSON.stringify(alts))}'` : '';
 
-    // onerror inline: tenta cada repo alternativo; quando esgotar, cai no SVG padrão.
     const onerr = "var a=JSON.parse(this.dataset.alts||'[]');if(a.length){this.src=a.shift();this.dataset.alts=JSON.stringify(a)}else{this.onerror=null;this.src=this.dataset.fbDefault;this.classList.add('no-sk')}";
 
     return `<img src="${esc(src)}"${altsAttr} data-fb-default="${fallback}" onerror="${onerr}" alt="${alt}" class="no-sk" decoding="async"${eager}${o.eager ? '' : ' loading="lazy"'}>`;
@@ -156,7 +184,6 @@ const IMG = (() => {
       } else {
         img.addEventListener('load', () => { el.classList.remove('sk'); el.classList.add('no-sk'); }, { once: true });
         img.addEventListener('error', () => {
-          // não remove imediatamente: o onerror inline pode trocar o src; só remove se ainda falhar
           setTimeout(() => {
             if (!img.naturalHeight) { el.classList.remove('sk'); el.classList.add('no-sk'); }
           }, 50);
