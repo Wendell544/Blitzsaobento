@@ -2,7 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
 // ====== CONFIGURAÇÃO DO SITE (troque aqui em cada site novo) ======
 const GITHUB_OWNER = 'Wendell544';
-const GITHUB_REPO = 'Blitzsaobento';
+const GITHUB_REPO = 'Sualoja';
 const GITHUB_BRANCH = ''; // vazio = branch padrão do repositório (a que o GitHub Pages publica)
 // O token do GitHub NÃO fica no código: continua no secret GITHUB_TOKEN do Supabase.
 // ===================================================================
@@ -150,7 +150,7 @@ Deno.serve(async (req) => {
       Authorization: `Bearer ${ghToken}`,
       Accept: 'application/vnd.github+json',
       'X-GitHub-Api-Version': '2022-11-28',
-      'User-Agent': 'Blitz-Cleanup-Orphans',
+      'User-Agent': 'Sualoja-Cleanup-Orphans',
     };
 
     const refQuery = GITHUB_BRANCH ? `?ref=${encodeURIComponent(GITHUB_BRANCH)}` : '';
