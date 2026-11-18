@@ -136,6 +136,16 @@ const IMG = (() => {
     return { refs, errs, dups };
   }
 
+  // Descobre qual repositório alternativa usar em caso de 404.
+  // Blitzsaobento e Bilinhajoias são os repos antigos; Sualoja é o novo.
+  function altRepoUrl(src) {
+    if (!/\/img\/i_[a-f0-9]+\.webp/i.test(src)) return '';
+    if (src.includes('/Sualoja/'))      return src.replace('/Sualoja/', '/Blitzsaobento/');
+    if (src.includes('/Blitzsaobento/')) return src.replace('/Blitzsaobento/', '/Sualoja/');
+    if (src.includes('/Bilinhajoias/'))  return src.replace('/Bilinhajoias/', '/Sualoja/');
+    return '';
+  }
+
   const html = (r, o = {}) => {
     r = R(r);
     const alt = esc(o.alt || '');
@@ -146,13 +156,17 @@ const IMG = (() => {
       return `<img src="${fallback}" alt="${alt}" class="no-sk" decoding="async"${eager}${o.eager ? '' : ' loading="lazy"'}>`;
     }
 
-    // Só usa a prévia local se ela ainda existe (criada nesta sessão); senão, usa a URL do GitHub.
-    let src = (r.local && LIVE.has(r.local) ? r.local : r.u) || '';
+    const src = (r.local && LIVE.has(r.local) ? r.local : r.u) || '';
+    const fb = altRepoUrl(src);
 
-    // 🚨 Migração automática: repositórios antigos → Sualoja (evita erro de imagem)
-    src = src.replace(/Bilinhajoias/gi, 'Sualoja').replace(/Blitzsaobento/gi, 'Sualoja');
+    // onerror com 2 estágios:
+    //   1) tenta o outro repositório (se houver)
+    //   2) cai no SVG padrão
+    const onerr = "if(this.dataset.retried){this.onerror=null;this.src=this.dataset.fbDefault;this.classList.add('no-sk')}else{this.dataset.retried='1';this.src=this.dataset.fb||this.dataset.fbDefault}";
 
-    return `<img src="${esc(src)}" onerror="this.onerror=null;this.src='${fallback}';this.classList.add('no-sk')" alt="${alt}" class="no-sk" decoding="async"${eager}${o.eager ? '' : ' loading="lazy"'}>`;
+    const fbAttr = fb ? ` data-fb="${esc(fb)}"` : '';
+
+    return `<img src="${esc(src)}"${fbAttr} data-fb-default="${fallback}" onerror="${onerr}" alt="${alt}" class="no-sk" decoding="async"${eager}${o.eager ? '' : ' loading="lazy"'}>`;
   };
 
   const hydrate = (root) => {
