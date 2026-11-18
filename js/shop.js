@@ -31,7 +31,7 @@ function hero(){
   } else if(hEl) {
     hEl.style.backgroundImage = '';
   }
-  
+
   $('hk').textContent=s.kick;
   $('ht').innerHTML=esc(s.title).replace(/(\S+)$/,'<span class="gt">$1</span>');
   $('hx').textContent=s.text;
@@ -124,7 +124,7 @@ function drawP(){
     </div>
     ${im.length>1?`
       <div class="pm-thumbs">
-        ${im.map((r,i)=>`<button class="pm-th${i===PM.i?' on':''}" data-a="pimg" data-v="${i}" aria-label="Foto ${i+1}">${IMG.html(r,{s:'thumb',now:1})}</button>`).join('')}
+        ${im.map((r,i)=>`<button class="pm-th${i===PM.i?' on':''}" data-a="pimg" data-v="${i}" aria-label="Foto ${i+1}">${IMG.html(r,{s:'thumb',now:1,eager:1})}</button>`).join('')}
       </div>
     `:''}
   </div>
@@ -151,7 +151,13 @@ function drawP(){
       </div>
     `:''}
   </div>`;
-  IMG.hydrate($('pmb'))
+  IMG.hydrate($('pmb'));
+  // Re-hidratar no próximo frame: cobre o caso em que as imagens já estão em cache
+  // e completam entre o innerHTML e a checagem síncrona do hydrate.
+  requestAnimationFrame(() => {
+    const el = $('pmb');
+    if (el && PM.p) IMG.hydrate(el);
+  });
 }
 
 function cartUI(){
@@ -191,22 +197,58 @@ const cartSave=()=>{Store.set(KEY.cart,DB.cart);cartUI()};
 ACT.cat=c=>{S.cat=c;S.n=0;Prefs.set({cat:c});grid();$('colecao').scrollIntoView({behavior:'smooth'})};
 ACT.more=()=>{S.n=(S.n||DB.set.page)+DB.set.page;grid()};
 ACT.rl=v=>{const[i,d]=v.split(':'),e=$('rl-'+i);if(e)e.scrollBy({left:d*e.clientWidth*.9,behavior:'smooth'})};
-ACT.open=id=>{const p=DB.prod.find(x=>x.id==id);if(!p)return;PM.p=p;PM.i=0;PM.z=false;drawP();modal('pm',1);$('pmb').scrollTop=0};
-ACT.pimg=i=>{const m=$('pmb'),t=m.scrollTop;PM.i=+i;drawP();m.scrollTop=t};
-ACT.pnav=v=>{const n=PM.p.images.length,m=$('pmb'),t=m.scrollTop;PM.i=(PM.i+ +v+n)%n;drawP();m.scrollTop=t};
-ACT.pz=()=>{if(swp){swp=0;return}const m=$('pmb'),t=m.scrollTop;PM.z=!PM.z;drawP();m.scrollTop=t};
+
+ACT.open=id=>{
+  const p=DB.prod.find(x=>x.id==id);
+  if(!p)return;
+  PM.p=p;
+  PM.i=0;
+  PM.z=false;
+  drawP();
+  modal('pm',1);
+  $('pmb').scrollTop=0;
+  // Re-hidratar APÓS o modal ficar visível: garante que imagens em cache apareçam
+  // mesmo que tenham "completado" enquanto o modal estava com display:none.
+  requestAnimationFrame(() => {
+    if (PM.p && $('pmb')) IMG.hydrate($('pmb'));
+  });
+};
+
+ACT.pimg=i=>{
+  const m=$('pmb'),t=m.scrollTop;
+  PM.i=+i;
+  drawP();
+  m.scrollTop=t;
+};
+
+ACT.pnav=v=>{
+  const n=PM.p.images.length,m=$('pmb'),t=m.scrollTop;
+  PM.i=(PM.i+ +v+n)%n;
+  drawP();
+  m.scrollTop=t;
+};
+
+ACT.pz=()=>{
+  if(swp){swp=0;return}
+  const m=$('pmb'),t=m.scrollTop;
+  PM.z=!PM.z;
+  drawP();
+  m.scrollTop=t;
+};
+
 ACT.add=id=>{
   const p=DB.prod.find(x=>x.id==id);
   if(!p||p.available===false){toast('Peça esgotada no momento.');return}
   const c=DB.cart.find(x=>x.id===p.id);
   if(c)c.qty=Math.min(99,c.qty+1);else DB.cart.push({id:p.id,qty:1});
-  Hist.bump(p.id);cartSave();pop();toast('“'+p.title+'” foi para a sacola.');
+  Hist.bump(p.id);cartSave();pop();toast('"'+p.title+'" foi para a sacola.');
 };
 ACT.chg=v=>{const[i,d]=v.split(':'),c=DB.cart.find(x=>x.id==i);if(!c)return;c.qty=Math.min(99,c.qty+ +d);if(c.qty<1)DB.cart=DB.cart.filter(x=>x!==c);cartSave()};
 ACT.rm=i=>{DB.cart=DB.cart.filter(x=>x.id!=i);cartSave()};
 ACT.clr=()=>{DB.cart=[];cartSave()};
 ACT.cart=()=>{$('ts').classList.add('hid');drawer(1)};
 ACT.close=()=>{drawer(0);modal('lg',0);modal('pm',0);if(/^#p=/.test(location.hash))history.replaceState(null,'',location.pathname+location.search)};
+
 ACT.share=async id=>{
   const p=DB.prod.find(x=>x.id==id);if(!p)return;
   const url=location.origin+location.pathname+'#p='+p.id;
@@ -215,11 +257,20 @@ ACT.share=async id=>{
     else{await navigator.clipboard.writeText(url);toast('Link copiado.')}
   }catch(e){}
 };
+
 ACT.theme=()=>{
   const r=document.documentElement;
   const d=r.dataset.theme?r.dataset.theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;
-  r.dataset.theme=d?'light':'dark';Prefs.set({theme:r.dataset.theme})
+  r.dataset.theme=d?'light':'dark';
+  Prefs.set({theme:r.dataset.theme});
+  // Se o modal de produto estiver aberto, re-hidratar imagens (o reflow do tema
+  // pode reiniciar transições e esconder as imagens por um instante).
+  requestAnimationFrame(() => {
+    const pm = $('pm');
+    if (pm && !pm.classList.contains('hid') && $('pmb')) IMG.hydrate($('pmb'));
+  });
 };
+
 ACT.fin=(v,a,e)=>{
   const L=lines(),n=$('nm').value.trim(),d=$('addr').value.trim(),er=$('cerr');
   const m=!L.length?'Adicione ao menos uma peça à sacola.':!n||!d?'Informe seu nome e o endereço com cidade.':'';
