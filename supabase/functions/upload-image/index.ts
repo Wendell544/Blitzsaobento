@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
     // Se o secret existir, ele manda no valor padrão. Por isso os 4 precisam estar certos.
     const ghToken = env('GITHUB_TOKEN');
     const owner = env('GITHUB_OWNER') || 'Wendell544';
-    const repo = env('GITHUB_REPO') || 'Blitzsaobento';
+    const repo = env('GITHUB_REPO') || 'Sualoja';
     const branch = env('GITHUB_BRANCH'); // vazio = usa a branch padrão do repositório
 
     if (!ghToken) return json({ error: 'GITHUB_TOKEN não configurado nos secrets.' }, 500);
@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
       Authorization: `Bearer ${ghToken}`,
       Accept: 'application/vnd.github+json',
       'X-GitHub-Api-Version': '2022-11-28',
-      'User-Agent': 'Blitz-Upload',
+      'User-Agent': 'Sualoja-Upload',
     };
 
     const where = `${owner}/${repo}`;
