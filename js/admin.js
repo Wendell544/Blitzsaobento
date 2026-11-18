@@ -9,7 +9,8 @@ const A = {
   pl: 20,
   del: null,
   lastAct: Date.now(),
-  setBg: null
+  setBg: null,
+  setBgLocal: null
 };
 
 const TABS = ['Produtos', 'Categorias', 'Anúncios', 'Aparência', 'Senha'];
@@ -141,7 +142,7 @@ async function show(n) {
   pst();
 
   const k = MK[A.tab];
-  if (k && (!A.m || A.m.k !== k)) A.m = { k, id: null, img: null };
+  if (k && (!A.m || A.m.k !== k)) A.m = { k, id: null, img: null, imgLocal: null };
 
   $('ab').innerHTML = (await [tProd, () => tMgr('categories'), () => tMgr('ads'), tSet, tPw][A.tab]());
   if (A.tab === 0) {
@@ -150,6 +151,7 @@ async function show(n) {
   }
   if (A.tab === 3) {
     A.setBg = DB.set.hero_bg?.u || DB.set.hero_bg || null;
+    A.setBgLocal = null;
     setpv();
   }
   if (k) {
@@ -343,14 +345,14 @@ async function upRun0(files, isBanner) {
   const p = $('pgp'), b = p ? p.firstElementChild : null;
   if (p) p.classList.remove('hid');
   if (b) b.style.width = '5%';
-  
+
   const r = await IMG.upload(files, (n, t) => {
     if (b) b.style.width = Math.round((n / t) * 100) + '%';
     if ($('pgt')) $('pgt').textContent = 'Processando ' + n + ' de ' + t + '…';
   }, isBanner);
-  
+
   setTimeout(() => { if (p) p.classList.add('hid'); }, 600);
-  
+
   if ($('pgt')) {
     $('pgt').textContent = [
       r.refs.length ? r.refs.length + ' foto(s) otimizada(s) em WebP' : '',
@@ -382,6 +384,7 @@ async function upM(files) {
   const r = await upRun([files[0]], true);
   if (r.refs[0]) {
     A.m.img = r.refs[0].u;
+    A.m.imgLocal = r.refs[0].local;
     mpv();
   }
 }
@@ -391,6 +394,7 @@ async function upSet(files) {
   const r = await upRun([files[0]], true);
   if (r.refs[0]) {
     A.setBg = r.refs[0].u;
+    A.setBgLocal = r.refs[0].local;
     setpv();
   }
 }
@@ -443,13 +447,17 @@ async function saveP() {
 const mpv = () => {
   const e = $('mpv');
   if (!e) return;
-  e.innerHTML = A.m.img ? IMG.html({ u: A.m.img }, { s: 'thumb' }) : '<span class="sm tm">Sem imagem</span>';
+  e.innerHTML = A.m.img
+    ? IMG.html({ u: A.m.img, local: A.m.imgLocal }, { s: 'thumb' })
+    : '<span class="sm tm">Sem imagem</span>';
 };
 
 const setpv = () => {
   const e = $('setpv');
   if (!e) return;
-  e.innerHTML = A.setBg ? IMG.html({ u: A.setBg }, { s: 'thumb' }) : '<span class="sm tm">Sem imagem</span>';
+  e.innerHTML = A.setBg
+    ? IMG.html({ u: A.setBg, local: A.setBgLocal }, { s: 'thumb' })
+    : '<span class="sm tm">Sem imagem</span>';
 };
 
 function fillM(x) {
@@ -460,6 +468,7 @@ function fillM(x) {
   });
   $('mf-on').checked = x.on !== false;
   A.m.img = x.img?.u || x.img || null;
+  A.m.imgLocal = null;
 }
 
 function tMgr(k) {
@@ -532,7 +541,7 @@ function tSet() {
         ? `<label class="lb full">${l}<textarea class="in" id="sf-${k}" rows="3">${esc(s[k])}</textarea></label>`
         : `<label class="lb">${l}<input class="in" id="sf-${k}" ${t === 'n' ? 'type=number ' : ''}value="${esc(s[k])}"></label>`
     ).join('')}
-    
+
     <div class="full col">
       <div class="lb" style="margin-bottom:4px">Imagem de Fundo do Hero (Opcional)</div>
       <div class="row wrap">
@@ -544,7 +553,7 @@ function tSet() {
       </div>
       ${UP}
     </div>
-    
+
     </div>
     <h4 class="serif h3" style="margin-top:24px;margin-bottom:12px;border-bottom:1px solid var(--bd);padding-bottom:12px">Seções da loja</h4>
     <div class="row wrap" style="gap:8px 16px;margin-bottom:24px">${SH.map(
@@ -774,23 +783,25 @@ ACT.medit = (v) => {
   const [k, id] = v.split(':'),
     x = DB[k].find((y) => y.id == id);
   if (!x) return;
-  A.m = { k, id: x.id, img: x.img?.u || x.img || null };
+  A.m = { k, id: x.id, img: x.img?.u || x.img || null, imgLocal: null };
   show(A.tab);
   $('adm').scrollTo({ top: 0, behavior: 'smooth' });
 };
 
 ACT.mnew = (k) => {
-  A.m = { k, id: null, img: null };
+  A.m = { k, id: null, img: null, imgLocal: null };
   show(A.tab);
 };
 
 ACT.mimgx = () => {
   A.m.img = null;
+  A.m.imgLocal = null;
   mpv();
 };
 
 ACT.simgx = () => {
   A.setBg = null;
+  A.setBgLocal = null;
   setpv();
 };
 
@@ -819,7 +830,7 @@ ACT.msave = async (k) => {
     DB[k].push(data);
   }
 
-  A.m = { k, id: null, img: null };
+  A.m = { k, id: null, img: null, imgLocal: null };
   render();
   show(A.tab);
   toast('Salvo com sucesso.');
@@ -850,7 +861,7 @@ ACT.mdel = async (v) => {
     await SB.from(k).delete().eq('id', id);
     A.del = null;
     DB[k] = DB[k].filter((y) => y.id != id);
-    if (A.m && A.m.id == id) A.m = { k, id: null, img: null };
+    if (A.m && A.m.id == id) A.m = { k, id: null, img: null, imgLocal: null };
     render();
     show(A.tab);
     toast('Excluído.');
