@@ -70,7 +70,7 @@ textarea.in{resize:vertical}
 }
 :root[data-theme="dark"] .logo{
   --logo-src: url('https://i.postimg.cc/kgDpjCWq/FDE807DA-AA8B-43A4-A74F-AEDCA7A4E627.png');
-}h
+}
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]) .logo{
     --logo-src: url('https://i.postimg.cc/kgDpjCWq/FDE807DA-AA8B-43A4-A74F-AEDCA7A4E627.png');
