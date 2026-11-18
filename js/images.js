@@ -69,12 +69,12 @@ const IMG = (() => {
     const localPreview = URL.createObjectURL(full);
     LIVE.add(localPreview);
     const k = 'i:' + (await hash(full));
-    
+
     if (URLS.has(k)) return { ref: { u: URLS.get(k), k, local: localPreview }, dup: true };
 
     const { data: { session } } = await SB.auth.getSession();
     const token = session?.access_token;
-    
+
     if (!token) throw new Error('Sessão expirada. Faça login novamente.');
 
     const form = new FormData();
@@ -82,9 +82,9 @@ const IMG = (() => {
 
     const res = await fetch(UPLOAD_URL, {
       method: 'POST',
-      headers: { 
+      headers: {
         Authorization: `Bearer ${token}`,
-        apikey: SB_KEY 
+        apikey: SB_KEY
       },
       body: form
     });
@@ -141,18 +141,16 @@ const IMG = (() => {
     const alt = esc(o.alt || '');
     const eager = o.eager ? ' fetchpriority="high"' : '';
     const fallback = art(40);
-    
+
     if (!r || (!r.u && !r.p && !r.local)) {
       return `<img src="${fallback}" alt="${alt}" class="no-sk" decoding="async"${eager}${o.eager ? '' : ' loading="lazy"'}>`;
     }
-    
+
     // Só usa a prévia local se ela ainda existe (criada nesta sessão); senão, usa a URL do GitHub.
     let src = (r.local && LIVE.has(r.local) ? r.local : r.u) || '';
 
-    // 🚨 AQUI ESTÁ O CONSERTO: Troca o nome do repositório antigo pelo novo
-    if (src.includes('Bilinhajoias')) {
-      src = src.replace(/Bilinhajoias/g, 'Blitzsaobento');
-    }
+    // 🚨 Migração automática: repositórios antigos → Sualoja (evita erro de imagem)
+    src = src.replace(/Bilinhajoias/gi, 'Sualoja').replace(/Blitzsaobento/gi, 'Sualoja');
 
     return `<img src="${esc(src)}" onerror="this.onerror=null;this.src='${fallback}';this.classList.add('no-sk')" alt="${alt}" class="no-sk" decoding="async"${eager}${o.eager ? '' : ' loading="lazy"'}>`;
   };
