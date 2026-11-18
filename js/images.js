@@ -60,16 +60,13 @@ const IMG = (() => {
     const k = 'i:' + (await hash(full));
     if (URLS.has(k)) return { ref: { u: URLS.get(k), k, local: localPreview }, dup: true };
 
-    // ---- Token com refresh preventivo (evita 401 por token velho) ----
+    // ---- Token com refresh preventivo ----
     let session = (await SB.auth.getSession()).data.session;
     if (!session) throw new Error('Sessão expirada. Faça login novamente.');
-
-    // Se faltar menos de 60s para expirar (ou já expirou), tenta renovar.
     if (session.expires_at && session.expires_at * 1000 - Date.now() < 60_000) {
       const { data: refreshData } = await SB.auth.refreshSession();
       if (refreshData?.session) session = refreshData.session;
     }
-
     const token = session?.access_token;
     if (!token) throw new Error('Sessão expirada. Faça login novamente.');
 
@@ -87,15 +84,11 @@ const IMG = (() => {
     catch (e) { throw new Error(`Resposta inválida da Edge Function (${res.status}).`); }
 
     if (res.status === 401) {
-      // Tenta um refresh de sessão e repete UMA vez.
       const { data: refreshData } = await SB.auth.refreshSession();
       if (refreshData?.session) {
         const retry = await fetch(UPLOAD_URL, {
           method: 'POST',
-          headers: {
-            Authorization: `Bearer ${refreshData.session.access_token}`,
-            apikey: SB_KEY,
-          },
+          headers: { Authorization: `Bearer ${refreshData.session.access_token}`, apikey: SB_KEY },
           body: form,
         });
         let body2;
@@ -143,7 +136,6 @@ const IMG = (() => {
     return { refs, errs, dups };
   }
 
-  // Lista de URLs alternativas para tentar se a principal der 404.
   const ALL_REPOS = ['Sualoja', 'Blitzsaobento', 'Bilinhajoias'];
   function altRepoUrls(src) {
     const m = src.match(/\/([^/]+)\/img\/(i_[a-f0-9]+\.webp)/i);
@@ -158,11 +150,14 @@ const IMG = (() => {
   const html = (r, o = {}) => {
     r = R(r);
     const alt = esc(o.alt || '');
+    // eager: força carregamento imediato (fetchpriority high + sem lazy).
+    // Indicado dentro do modal, onde as imagens precisam aparecer na hora.
     const eager = o.eager ? ' fetchpriority="high"' : '';
+    const lazy = o.eager ? '' : ' loading="lazy"';
     const fallback = art(40);
 
     if (!r || (!r.u && !r.p && !r.local)) {
-      return `<img src="${fallback}" alt="${alt}" class="no-sk" decoding="async"${eager}${o.eager ? '' : ' loading="lazy"'}>`;
+      return `<img src="${fallback}" alt="${alt}" class="no-sk" decoding="async"${eager}${lazy}>`;
     }
 
     const src = (r.local && LIVE.has(r.local) ? r.local : r.u) || '';
@@ -171,24 +166,34 @@ const IMG = (() => {
 
     const onerr = "var a=JSON.parse(this.dataset.alts||'[]');if(a.length){this.src=a.shift();this.dataset.alts=JSON.stringify(a)}else{this.onerror=null;this.src=this.dataset.fbDefault;this.classList.add('no-sk')}";
 
-    return `<img src="${esc(src)}"${altsAttr} data-fb-default="${fallback}" onerror="${onerr}" alt="${alt}" class="no-sk" decoding="async"${eager}${o.eager ? '' : ' loading="lazy"'}>`;
+    return `<img src="${esc(src)}"${altsAttr} data-fb-default="${fallback}" onerror="${onerr}" alt="${alt}" class="no-sk" decoding="async"${eager}${lazy}>`;
   };
 
+  // Revela uma imagem: remove o shimmer (.sk) e marca como carregada.
+  const reveal = (el) => {
+    if (!el) return;
+    el.classList.remove('sk');
+    el.classList.add('no-sk');
+  };
+
+  // Hidrata containers .sk: revela quando a imagem carregar (ou imediatamente, se já estiver em cache).
+  // Faz DUAS checagens (antes e depois do addEventListener) — protege contra race condition
+  // quando a imagem em cache completa entre o innerHTML e o addEventListener.
   const hydrate = (root) => {
     if (!root || !root.querySelectorAll) return;
     root.querySelectorAll('.sk').forEach((el) => {
       const img = el.querySelector('img');
-      if (!img) return;
-      if (img.complete && img.naturalHeight !== 0) {
-        el.classList.remove('sk'); el.classList.add('no-sk');
-      } else {
-        img.addEventListener('load', () => { el.classList.remove('sk'); el.classList.add('no-sk'); }, { once: true });
-        img.addEventListener('error', () => {
-          setTimeout(() => {
-            if (!img.naturalHeight) { el.classList.remove('sk'); el.classList.add('no-sk'); }
-          }, 50);
-        }, { once: true });
-      }
+      if (!img) { reveal(el); return; }
+
+      if (img.complete && img.naturalHeight !== 0) { reveal(el); return; }
+
+      img.addEventListener('load', () => reveal(el), { once: true });
+      img.addEventListener('error', () => {
+        setTimeout(() => { if (!img.naturalHeight) reveal(el); }, 50);
+      }, { once: true });
+
+      // Recheca: cache quente pode ter completado entre o if e o addEventListener.
+      if (img.complete && img.naturalHeight !== 0) reveal(el);
     });
   };
 
