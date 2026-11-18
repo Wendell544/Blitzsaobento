@@ -20,7 +20,7 @@ const SB_URL = 'https://ncrsodkpduroulzkpaky.supabase.co';
 const SB_KEY = 'sb_publishable_OOejb1xfSYPHVD8Xf4F09g_YT_Sa5lu';
 
 const GH_OWNER = 'Wendell544';
-const GH_REPO = 'Blitzsaobento';
+const GH_REPO = 'Sualoja';
 
 const WAD = '5583996006884';
 const CATS0 = ['Masculino', 'Feminino', 'Infantil', 'Calçados', 'Acessórios'];
