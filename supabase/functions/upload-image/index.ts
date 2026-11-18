@@ -9,7 +9,7 @@ const CORS = {
 const MAX_BYTES = 5 * 1024 * 1024;
 const GITHUB_API = 'https://api.github.com';
 
-// Lê um secret tirando espaços e quebras de linha que sobram ao colar o valor.
+// Lê um secret tirando espaços/quebras de linha que sobram ao colar o valor.
 const env = (name: string) => (Deno.env.get(name) ?? '').trim();
 
 Deno.serve(async (req) => {
@@ -17,35 +17,56 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'Método não permitido.' }, 405);
 
   try {
+    // ---------- 1) Autenticação do usuário ----------
     const authHeader = req.headers.get('Authorization') ?? '';
-    const token = authHeader.replace(/^Bearer\s+/i, '');
+    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
     if (!token) return json({ error: 'Token ausente.' }, 401);
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+    const supabaseUrl = env('SUPABASE_URL');
+    const supabaseAnonKey = env('SUPABASE_ANON_KEY');
 
-    const { data: userData, error: userError } = await adminClient.auth.getUser(token);
-    if (userError || !userData?.user) return json({ error: 'Sessão expirada.' }, 401);
-    if (userData.user.app_metadata?.role !== 'admin') return json({ error: 'Acesso negado.' }, 403);
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('upload-image: SUPABASE_URL/SUPABASE_ANON_KEY ausentes no ambiente.');
+      return json({ error: 'Configuração do Supabase ausente na função.' }, 500);
+    }
 
+    // ⚠️ Mesmo padrão do cleanup-orphans: client anon + getUser(token) explícito.
+    // Usar SERVICE_ROLE_KEY aqui NÃO é recomendado e pode falhar com 401.
+    const userClient = createClient(supabaseUrl, supabaseAnonKey);
+    const { data: userData, error: userError } = await userClient.auth.getUser(token);
+
+    if (userError || !userData?.user) {
+      console.error('upload-image: getUser falhou', userError?.message);
+      return json({
+        error: 'Sessão inválida ou expirada. Faça login novamente.',
+        detail: userError?.message ?? 'token não reconhecido',
+      }, 401);
+    }
+
+    if (userData.user.app_metadata?.role !== 'admin') {
+      return json({ error: 'Acesso negado. Apenas administradores.' }, 403);
+    }
+
+    // ---------- 2) Validação do arquivo ----------
     const formData = await req.formData();
     const file = formData.get('file');
-    if (!(file instanceof File) || file.type !== 'image/webp') return json({ error: 'Envie apenas WebP válido.' }, 415);
+    if (!(file instanceof File)) return json({ error: 'Nenhum arquivo enviado.' }, 400);
+    if (file.type !== 'image/webp') return json({ error: 'Envie apenas WebP válido.' }, 415);
     if (file.size > MAX_BYTES) return json({ error: 'Arquivo muito grande (>5MB).' }, 413);
 
     const bytes = new Uint8Array(await file.arrayBuffer());
     const hashBuffer = await crypto.subtle.digest('SHA-256', bytes);
-    const hashHex = Array.from(new Uint8Array(hashBuffer).slice(0, 8)).map((b) => b.toString(16).padStart(2, '0')).join('');
+    const hashHex = Array.from(new Uint8Array(hashBuffer).slice(0, 8))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
     const fileName = `i_${hashHex}.webp`;
     const path = `img/${fileName}`;
 
-    // ---- Configuração do GitHub (secrets do Supabase) ----
-    // Se o secret existir, ele manda no valor padrão. Por isso os 4 precisam estar certos.
+    // ---------- 3) Configuração do GitHub ----------
     const ghToken = env('GITHUB_TOKEN');
     const owner = env('GITHUB_OWNER') || 'Wendell544';
     const repo = env('GITHUB_REPO') || 'Sualoja';
-    const branch = env('GITHUB_BRANCH'); // vazio = usa a branch padrão do repositório
+    const branch = env('GITHUB_BRANCH'); // vazio = branch padrão
 
     if (!ghToken) return json({ error: 'GITHUB_TOKEN não configurado nos secrets.' }, 500);
 
@@ -60,18 +81,22 @@ Deno.serve(async (req) => {
     const contentsUrl = `${GITHUB_API}/repos/${owner}/${repo}/contents/${path}`;
     const publicUrl = `https://${owner}.github.io/${repo}/${path}`;
 
-    // Se a foto já existe no repositório, reaproveita.
+    // ---------- 4) Já existe? Reaproveita ----------
     const checkUrl = branch ? `${contentsUrl}?ref=${encodeURIComponent(branch)}` : contentsUrl;
     const checkRes = await fetch(checkUrl, { headers: gh });
     if (checkRes.ok) return json({ url: publicUrl, dup: true });
 
+    // ---------- 5) Upload no GitHub ----------
     let bin = '';
     for (let i = 0; i < bytes.length; i += 0x8000) {
       bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000) as any);
     }
     const base64 = btoa(bin);
 
-    const payload: Record<string, string> = { message: `upload: ${fileName}`, content: base64 };
+    const payload: Record<string, string> = {
+      message: `upload: ${fileName}`,
+      content: base64,
+    };
     if (branch) payload.branch = branch;
 
     const putRes = await fetch(contentsUrl, {
@@ -82,18 +107,25 @@ Deno.serve(async (req) => {
 
     if (!putRes.ok) {
       const errText = await putRes.text();
-      console.error('upload-image: GitHub recusou o envio', putRes.status, errText, { where, branch: branch || '(padrão)' });
+      console.error('upload-image: GitHub recusou', putRes.status, errText, {
+        where,
+        branch: branch || '(padrão)',
+      });
       const motivo = await diagnose(gh, owner, repo, branch, putRes.status);
-      return json({ error: `${motivo} [GitHub ${putRes.status} · ${where}]`, detail: errText.slice(0, 300) }, 502);
+      return json(
+        { error: `${motivo} [GitHub ${putRes.status} · ${where}]`, detail: errText.slice(0, 300) },
+        502,
+      );
     }
 
     return json({ url: publicUrl, dup: false });
   } catch (e: any) {
-    return json({ error: `Erro inesperado: ${e.message}` }, 500);
+    console.error('upload-image: erro inesperado', e);
+    return json({ error: `Erro inesperado: ${e?.message ?? String(e)}` }, 500);
   }
 });
 
-// Quando o GitHub recusa o envio, descobre o motivo e devolve uma mensagem clara.
+// Quando o GitHub recusa, descobre o motivo e devolve mensagem clara.
 async function diagnose(
   gh: Record<string, string>,
   owner: string,
@@ -109,17 +141,17 @@ async function diagnose(
       return 'GITHUB_TOKEN inválido ou expirado. Gere outro token e atualize o secret.';
     }
     if (r.status === 404) {
-      return `Repositório ${where} não encontrado para este token. Confira GITHUB_OWNER e GITHUB_REPO (nome exato, sem espaços) e se o token tem acesso a ele.`;
+      return `Repositório ${where} não encontrado para este token. Confira GITHUB_OWNER e GITHUB_REPO e se o token tem acesso.`;
     }
     if (r.ok) {
       const info = await r.json();
       if (info?.permissions?.push === false) {
-        return `O token enxerga ${where}, mas não pode escrever nele. Dê a permissão "Contents: Read and write" (fine-grained) ou o escopo "repo" (token clássico).`;
+        return `O token enxerga ${where}, mas não pode escrever nele. Dê "Contents: Read and write" (fine-grained) ou escopo "repo" (clássico).`;
       }
       if (branch) {
         const b = await fetch(`${GITHUB_API}/repos/${owner}/${repo}/branches/${branch}`, { headers: gh });
         if (b.status === 404) {
-          return `A branch "${branch}" não existe em ${where}. A padrão é "${info?.default_branch}": ajuste o secret GITHUB_BRANCH.`;
+          return `A branch "${branch}" não existe em ${where}. A padrão é "${info?.default_branch}": ajuste GITHUB_BRANCH.`;
         }
       }
     }
@@ -134,5 +166,8 @@ async function diagnose(
 }
 
 function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...CORS, 'Content-Type': 'application/json' },
+  });
 }
