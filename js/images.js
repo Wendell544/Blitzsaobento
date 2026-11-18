@@ -5,7 +5,6 @@ const IMG = (() => {
   const UPLOAD_URL = `${SB_URL}/functions/v1/upload-image`;
 
   const URLS = new Map();
-  // blob: URLs criadas nesta sessão. As que ficaram salvas de sessões antigas já não existem mais.
   const LIVE = new Set();
 
   const dec = (f) =>
@@ -14,10 +13,7 @@ const IMG = (() => {
       : new Promise((ok, no) => {
           const i = new Image(),
             u = URL.createObjectURL(f);
-          i.onload = () => {
-            URL.revokeObjectURL(u);
-            ok(i);
-          };
+          i.onload = () => { URL.revokeObjectURL(u); ok(i); };
           i.onerror = () => no(new Error('x'));
           i.src = u;
         });
@@ -54,27 +50,18 @@ const IMG = (() => {
     if (!TYPES.includes(f.type) && !/\.(jpe?g|png|webp|heic|heif|gif|avif)$/i.test(f.name)) {
       throw new Error(`${f.name}: formato não permitido.`);
     }
-
     let s;
-    try {
-      s = await dec(f);
-    } catch (e) {
-      throw new Error(`${f.name}: imagem inválida.`);
-    }
-
+    try { s = await dec(f); } catch (e) { throw new Error(`${f.name}: imagem inválida.`); }
     const full = await optimize(s);
     if (!full) throw new Error(`${f.name}: não foi possível processar a imagem.`);
 
-    // Cria a URL temporária para a miniatura aparecer na hora
     const localPreview = URL.createObjectURL(full);
     LIVE.add(localPreview);
     const k = 'i:' + (await hash(full));
-
     if (URLS.has(k)) return { ref: { u: URLS.get(k), k, local: localPreview }, dup: true };
 
     const { data: { session } } = await SB.auth.getSession();
     const token = session?.access_token;
-
     if (!token) throw new Error('Sessão expirada. Faça login novamente.');
 
     const form = new FormData();
@@ -82,24 +69,15 @@ const IMG = (() => {
 
     const res = await fetch(UPLOAD_URL, {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        apikey: SB_KEY
-      },
+      headers: { Authorization: `Bearer ${token}`, apikey: SB_KEY },
       body: form
     });
 
     let body;
-    try {
-      body = await res.json();
-    } catch (e) {
-      throw new Error(`Resposta inválida da Edge Function (${res.status}).`);
-    }
+    try { body = await res.json(); }
+    catch (e) { throw new Error(`Resposta inválida da Edge Function (${res.status}).`); }
 
-    if (res.status === 401) {
-      throw new Error('Sessão expirada. Faça login novamente e tente enviar a foto.');
-    }
-
+    if (res.status === 401) throw new Error('Sessão expirada. Faça login novamente.');
     if (!res.ok) throw new Error(body.error || `Falha no upload (${res.status}).`);
 
     const ref = { u: body.url, k, local: localPreview };
@@ -120,29 +98,27 @@ const IMG = (() => {
     return (h >>> 0).toString(16) + u.length.toString(16);
   }
 
-  async function upload(files, onProgress, isBanner = false) {
+  async function upload(files, onProgress) {
     const refs = [], errs = [];
     let n = 0, dups = 0;
     for (const f of files) {
       try {
-        const o = await one(f, isBanner);
+        const o = await one(f);
         if (o.dup) dups++;
         refs.push(o.ref);
-      } catch (e) {
-        errs.push(e.message || String(e));
-      }
+      } catch (e) { errs.push(e.message || String(e)); }
       onProgress && onProgress(++n, files.length);
     }
     return { refs, errs, dups };
   }
 
-  // Descobre qual repositório alternativa usar em caso de 404.
-  // Blitzsaobento e Bilinhajoias são os repos antigos; Sualoja é o novo.
+  // Se a URL for do repo novo (Sualoja) mas a foto estiver no antigo (ou vice-versa),
+  // tenta o outro repositório antes de desistir.
   function altRepoUrl(src) {
     if (!/\/img\/i_[a-f0-9]+\.webp/i.test(src)) return '';
-    if (src.includes('/Sualoja/'))      return src.replace('/Sualoja/', '/Blitzsaobento/');
-    if (src.includes('/Blitzsaobento/')) return src.replace('/Blitzsaobento/', '/Sualoja/');
-    if (src.includes('/Bilinhajoias/'))  return src.replace('/Bilinhajoias/', '/Sualoja/');
+    if (src.includes('/Sualoja/'))        return src.replace('/Sualoja/', '/Blitzsaobento/');
+    if (src.includes('/Blitzsaobento/'))  return src.replace('/Blitzsaobento/', '/Sualoja/');
+    if (src.includes('/Bilinhajoias/'))   return src.replace('/Bilinhajoias/', '/Sualoja/');
     return '';
   }
 
@@ -159,11 +135,8 @@ const IMG = (() => {
     const src = (r.local && LIVE.has(r.local) ? r.local : r.u) || '';
     const fb = altRepoUrl(src);
 
-    // onerror com 2 estágios:
-    //   1) tenta o outro repositório (se houver)
-    //   2) cai no SVG padrão
+    // onerror em 2 estágios: 1) tenta o outro repo → 2) cai no SVG padrão
     const onerr = "if(this.dataset.retried){this.onerror=null;this.src=this.dataset.fbDefault;this.classList.add('no-sk')}else{this.dataset.retried='1';this.src=this.dataset.fb||this.dataset.fbDefault}";
-
     const fbAttr = fb ? ` data-fb="${esc(fb)}"` : '';
 
     return `<img src="${esc(src)}"${fbAttr} data-fb-default="${fallback}" onerror="${onerr}" alt="${alt}" class="no-sk" decoding="async"${eager}${o.eager ? '' : ' loading="lazy"'}>`;
@@ -174,17 +147,10 @@ const IMG = (() => {
     root.querySelectorAll('.sk').forEach((el) => {
       const img = el.querySelector('img');
       if (img && img.complete && img.naturalHeight !== 0) {
-        el.classList.remove('sk');
-        el.classList.add('no-sk');
+        el.classList.remove('sk'); el.classList.add('no-sk');
       } else if (img) {
-        img.addEventListener('load', () => {
-          el.classList.remove('sk');
-          el.classList.add('no-sk');
-        }, { once: true });
-        img.addEventListener('error', () => {
-          el.classList.remove('sk');
-          el.classList.add('no-sk');
-        }, { once: true });
+        img.addEventListener('load', () => { el.classList.remove('sk'); el.classList.add('no-sk'); }, { once: true });
+        img.addEventListener('error', () => { el.classList.remove('sk'); el.classList.add('no-sk'); }, { once: true });
       }
     });
   };
