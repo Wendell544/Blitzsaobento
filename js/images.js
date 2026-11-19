@@ -136,7 +136,7 @@ const IMG = (() => {
     return { refs, errs, dups };
   }
 
-  const ALL_REPOS = ['Sualoja', 'Blitzsaobento', 'Bilinhajoias'];
+  const ALL_REPOS = ['Sualoja', 'sua loja', 'sua loja '];
   function altRepoUrls(src) {
     const m = src.match(/\/([^/]+)\/img\/(i_[a-f0-9]+\.webp)/i);
     if (!m) return [];
