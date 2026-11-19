@@ -187,7 +187,7 @@ function footer(){
   if(/^[\w.]{1,30}$/.test(ig))L.push(`<a class="tg" target="_blank" rel="noopener" href="https://www.instagram.com/${ig}/">@${ig}</a>`);
   if(okUrl(s.fb))L.push(`<a class="tg" target="_blank" rel="noopener" href="${esc(s.fb)}">Facebook</a>`);
   if(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.email||''))L.push(`<a class="tg" href="mailto:${esc(s.email)}">${esc(s.email)}</a>`);
-  $('ft').innerHTML=`<span class="tg">${ic('gem',26)}</span><div class="serif tg h2">BLITZ</div>${s.about?`<p style="max-width:560px">${esc(s.about)}</p>`:''}<p>${esc(s.addr)}</p><div class="lk">${L.join('')}</div><button class="dots-btn" data-a="admin" tabindex="-1" aria-hidden="true">•••</button>`
+  $('ft').innerHTML=`<span class="tg">${ic('gem',26)}</span><div class="serif tg h2">sua loja</div>${s.about?`<p style="max-width:560px">${esc(s.about)}</p>`:''}<p>${esc(s.addr)}</p><div class="lk">${L.join('')}</div><button class="dots-btn" data-a="admin" tabindex="-1" aria-hidden="true">•••</button>`
 }
 
 const render=()=>{hero();rails();grid();cartUI();footer()};
