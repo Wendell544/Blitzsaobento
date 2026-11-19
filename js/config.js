@@ -1,4 +1,4 @@
-const V = 11, PFX = 'blitz_', KEY = {
+const V = 11, PFX = 'sua loja_', KEY = {
   prod: PFX + 'products',
   cart: PFX + 'cart',
   ads: PFX + 'ads',
@@ -33,7 +33,7 @@ const SET0 = {
   wa: WAD,
   email: '',
   addr: 'São Bento – PB',
-  ig: 'lojablitzsb',
+  ig: 'sua loja',
   fb: '',
   sec: 6,
   page: 12,
@@ -120,7 +120,7 @@ const art = (h) =>
       h +
       ',20%,25%)"/><stop offset="1" stop-color="hsl(' +
       h +
-      ',15%,8%)"/></radialGradient></defs><rect width="400" height="400" fill="url(#g)"/><g fill="none" stroke="#cda353" stroke-width="3" stroke-linejoin="round"><path d="M140 120h120l20 80-30 120h-100l-30-120z"/><path d="M160 120c0 20 20 30 40 30s40-10 40-30"/></g><text x="200" y="365" text-anchor="middle" font-family="Georgia,serif" font-size="20" letter-spacing="6" fill="#cda353" opacity=".7">BLITZ</text></svg>',
+      ',15%,8%)"/></radialGradient></defs><rect width="400" height="400" fill="url(#g)"/><g fill="none" stroke="#cda353" stroke-width="3" stroke-linejoin="round"><path d="M140 120h120l20 80-30 120h-100l-30-120z"/><path d="M160 120c0 20 20 30 40 30s40-10 40-30"/></g><text x="200" y="365" text-anchor="middle" font-family="Georgia,serif" font-size="20" letter-spacing="6" fill="#cda353" opacity=".7">sua loja</text></svg>',
   );
 
 const seed = () => [
