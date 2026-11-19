@@ -80,7 +80,7 @@ const UP =
 const shell = () => {
   $('adm').innerHTML = `<div class="w adin">
     <div class="row sp wrap" style="margin-bottom:8px">
-      <h2 class="serif h2">Painel BLITZ</h2>
+      <h2 class="serif h2">Painel </h2>
       <div class="row wrap">
         <button class="b ghost" data-a="bk" aria-label="Backup">Backup</button>
         <button class="b ghost" data-a="exit">Sair</button>
