@@ -35,7 +35,7 @@ function hero(){
   $('hk').textContent=s.kick;
   $('ht').innerHTML=esc(s.title).replace(/(\S+)$/,'<span class="gt">$1</span>');
   $('hx').textContent=s.text;
-  $('hw').href=wa('Olá! Vim pelo site da BLITZ e gostaria de ajuda.');
+  $('hw').href=wa('Olá! Vim pelo site da sua loja e gostaria de ajuda.');
 }
 
 const card=p=>{
@@ -277,7 +277,7 @@ ACT.fin=(v,a,e)=>{
   er.textContent=m;er.classList.toggle('hid',!m);
   if(m){e.preventDefault();return}
   a.href=wa([
-    '👕 *Novo pedido · BLITZ*','',
+    '👕 *Novo pedido · sua loja*','',
     '👤 *Cliente:* '+n,'📍 *Entrega:* '+d,'💳 *Pagamento:* '+$('pay').value,'',
     '🛍️ *Itens do pedido*',
     ...L.map(({p,qty},i)=>(i+1)+'. '+p.title+'\n    '+qty+' × '+money(pr(p))+' = '+money(pr(p)*qty)+(inst(p)?'\n    ✨ '+inst(p):'')),
